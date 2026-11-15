@@ -103,6 +103,29 @@ main{padding:16px 14px 110px}.md{padding:22px 16px}.mr{font-size:14px}.mr:not(.p
 #stor{position:fixed;right:12px;bottom:12px;z-index:45;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:2px 12px;font-size:12px;line-height:1.6;color:var(--mut);pointer-events:none;box-shadow:0 1px 6px rgba(75,61,49,.08)}#stor b{font-weight:400;color:var(--ink)}
 @media(max-width:600px){#stor{bottom:calc(62px + env(safe-area-inset-bottom));right:8px;font-size:11px}}
 .bad{color:var(--mut);font-size:12px;padding:8px;text-align:center}.ld{padding:70px 20px;text-align:center;color:var(--mut)}
+.tile{position:relative}.tile .tb{position:absolute;top:12px;right:12px;min-width:34px;height:34px}
+.rne{color:#7a3b2e;font-size:13px;min-height:1em;margin:0}
+.sorthint{font-size:13px;margin:-6px 0 14px}.sortable .card{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.card.dragging{opacity:.45;outline:2px dashed var(--acc2);outline-offset:4px;border-radius:12px}
+.ghost{position:fixed;z-index:80;pointer-events:none;opacity:.92;margin:0;transform:scale(1.05) rotate(2deg);box-shadow:0 14px 34px rgba(75,61,49,.3);border-radius:12px}
+body.sorting{cursor:grabbing;user-select:none}
+.mb{position:absolute;top:8px;left:8px;width:34px;height:34px;border-radius:50%;border:0;background:rgba(251,247,239,.9);color:var(--acc2);font-size:16px;cursor:pointer}
+.dz{position:fixed;left:50%;bottom:20px;transform:translate(-50%,160%);z-index:70;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:min(92vw,720px);background:var(--card);border:1px solid var(--line);border-radius:18px;padding:10px 12px;box-shadow:0 8px 30px rgba(75,61,49,.18);transition:transform .2s;pointer-events:none}
+.dz.show{transform:translate(-50%,0);pointer-events:auto}
+.dz .chip{border:1.5px dashed var(--acc);border-radius:99px;padding:8px 14px;font-size:13px;background:var(--bg)}.dz .chip.hot{background:var(--acc2);color:#fbf7ef;border-color:var(--acc2)}
+.pi.on{outline:2px solid var(--acc2);outline-offset:1px}.cv:not(.one) .pi.on .rz{display:none}
+.mq{position:absolute;border:1px solid var(--acc2);background:rgba(156,123,92,.18);pointer-events:none;z-index:9999}
+.g.on{background:var(--acc2);color:#fbf7ef;border-color:var(--acc2)}.g:disabled{opacity:.4;cursor:default}
+.crop{display:grid;grid-template-columns:1fr 230px;gap:18px}
+.crs{position:relative;overflow:hidden;height:min(58vh,440px);border-radius:14px;background:repeating-conic-gradient(#e9e1d3 0 25%,#f6f0e4 0 50%) 0 0/16px 16px;touch-action:none;user-select:none;cursor:grab}
+.crs canvas{position:absolute;inset:0;width:100%;height:100%}
+.cf{position:absolute;box-shadow:0 0 0 9999px rgba(75,61,49,.55);outline:2px solid #fbf7ef;cursor:move;background:linear-gradient(#fff7 0 0) 33.3% 0/1px 100% no-repeat,linear-gradient(#fff7 0 0) 66.6% 0/1px 100% no-repeat,linear-gradient(#fff7 0 0) 0 33.3%/100% 1px no-repeat,linear-gradient(#fff7 0 0) 0 66.6%/100% 1px no-repeat}
+.cf .h{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px}.cf .h::after{content:"";position:absolute;inset:7px;background:#fbf7ef;border:2px solid var(--acc2);border-radius:50%}
+.h.nw{left:0;top:0;cursor:nwse-resize}.h.n{left:50%;top:0;cursor:ns-resize}.h.ne{left:100%;top:0;cursor:nesw-resize}.h.e{left:100%;top:50%;cursor:ew-resize}.h.se{left:100%;top:100%;cursor:nwse-resize}.h.s{left:50%;top:100%;cursor:ns-resize}.h.sw{left:0;top:100%;cursor:nesw-resize}.h.w{left:0;top:50%;cursor:ew-resize}
+.crs.fx .h.n,.crs.fx .h.s,.crs.fx .h.e,.crs.fx .h.w{display:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}.chips .g{padding:6px 12px;font-size:13px}
+.cpv{display:block;max-width:100%;max-height:200px;margin:0 auto;border:1px solid var(--line);border-radius:10px;background:repeating-conic-gradient(#e9e1d3 0 25%,#f6f0e4 0 50%) 0 0/12px 12px}
+@media(max-width:700px){.crop{grid-template-columns:1fr}.dz{bottom:calc(66px + env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -148,7 +171,13 @@ const Local={
  async delOutfit(o){await idb.del('outfits',o.id);for(const c of await idb.all('cols'))if(c.outfitIds.includes(o.id))await idb.put('cols',{...c,outfitIds:c.outfitIds.filter(x=>x!==o.id)})},
  async setFav(id,v){const o=(await idb.all('outfits')).find(o=>o.id===id);await idb.put('outfits',{...o,fav:v})},
  cols:()=>idb.all('cols'),addCol:name=>idb.put('cols',{id:uuid(),name,outfitIds:[]}),delCol:id=>idb.del('cols',id),
- async setCol(oid,cid,on){const c=(await idb.all('cols')).find(c=>c.id===cid);const s=new Set(c.outfitIds);on?s.add(oid):s.delete(oid);await idb.put('cols',{...c,outfitIds:[...s]})}
+ async setCol(oid,cid,on){const c=(await idb.all('cols')).find(c=>c.id===cid);const s=new Set(c.outfitIds);on?s.add(oid):s.delete(oid);await idb.put('cols',{...c,outfitIds:[...s]})},
+ async renCol(id,name){const c=(await idb.all('cols')).find(c=>c.id===id);if(!c)throw new Error('ไม่พบคอลเลกชัน');await idb.put('cols',{...c,name})},
+ async ordOutfits(scope,pairs){if(scope==='all'){const m=new Map(pairs);for(const o of await idb.all('outfits'))if(m.has(o.id))await idb.put('outfits',{...o,sort_order:m.get(o.id)})}
+  else{const c=(await idb.all('cols')).find(c=>c.id===scope);if(!c)throw new Error('ไม่พบคอลเลกชัน');await idb.put('cols',{...c,pos:{...(c.pos||{}),...Object.fromEntries(pairs)}})}},
+ async moveOutfit(oid,from,to){const cs=await idb.all('cols'),f=cs.find(c=>c.id===from),t=cs.find(c=>c.id===to);
+  if(t&&!t.outfitIds.includes(oid)){const pos={...(t.pos||{})};delete pos[oid];await idb.put('cols',{...t,outfitIds:[...t.outfitIds,oid],pos})}
+  if(f){const pos={...(f.pos||{})};delete pos[oid];await idb.put('cols',{...f,outfitIds:f.outfitIds.filter(x=>x!==oid),pos})}}
 };
 
 /* ── Supabase data layer (auth, storage, RLS-protected tables) ── */
@@ -163,6 +192,8 @@ const SB={
   if(cc.error)w.push('categories: '+cc.error.message);else if(cc.count===0){const r=await this.c.rpc('seed_default_categories',{uid:this.uid});if(r.error){try{await this.seedCats()}catch(e){w.push('สร้างหมวดหมู่เริ่มต้นไม่สำเร็จ: '+e.message+' (rpc: '+r.error.message+')')}}}
   const pr=await Promise.all(['items','outfits'].map(t=>this.c.from(t).select('image_size').limit(1))),miss=pr.find(r=>r.error&&(r.error.code==='42703'||/image_size/.test(r.error.message)));
   this.sizeCol=!miss;if(miss)w.push('ฐานข้อมูลยังไม่มีคอลัมน์ image_size — รันไฟล์ migration (ดู README) ขนาดไฟล์จะยังไม่ถูกบันทึกถาวรจนกว่าจะรัน');
+  const p2=await Promise.all([this.c.from('outfits').select('sort_order').limit(1),this.c.from('collection_outfits').select('position').limit(1)]),m2=p2.find(r=>r.error&&(r.error.code==='42703'||/sort_order|position/.test(r.error.message)));this.ordCol=!m2;
+  if(m2)w.push('ฐานข้อมูลยังไม่มีคอลัมน์ลำดับชุด (outfits.sort_order / collection_outfits.position) — รัน migration-v2.sql เพื่อบันทึกการเรียงลำดับแบบถาวร');
   return{email:data.session.user.email,warn:w}},
  async seedCats(){let o=1;for(const[,pn,ss]of DEFCATS){const p=chk(await this.c.from('categories').insert({user_id:this.uid,name:pn,parent_id:null,sort_order:o++}).select(),'categories')[0];chk(await this.c.from('categories').insert(ss.map(([,sn],k)=>({user_id:this.uid,name:sn,parent_id:p.id,sort_order:k+1}))),'categories')}},
  async signIn(email,password){const{error}=await this.mk().auth.signInWithPassword({email,password});if(error)throw error},
@@ -183,7 +214,7 @@ const SB={
   try{await one(this.c.from('items').update(u).eq('id',id).eq('user_id',this.uid),'แก้ไขรายการ')}catch(e){if(np)await this.rm(np);throw e}if(np&&old&&old.path)await this.rm(old.path)},
  async delItem(it){await one(this.c.from('items').delete().eq('id',it.id).eq('user_id',this.uid),'ลบรายการ');if(it.path)await this.rm(it.path)},
  async outfits(){const d=chk(await this.c.from('outfits').select('*, outfit_items(item_id)').eq('user_id',this.uid).order('created_at',{ascending:false}),'outfits'),m=await this.sign(d.map(o=>o.image_path));
-  return d.map(o=>({id:o.id,name:o.name,path:o.image_path,url:m[o.image_path],layout:o.layout,fav:o.is_favorite,itemIds:(o.outfit_items||[]).map(x=>x.item_id),size:o.image_size??null}))},
+  return d.map(o=>({id:o.id,name:o.name,path:o.image_path,url:m[o.image_path],layout:o.layout,fav:o.is_favorite,itemIds:(o.outfit_items||[]).map(x=>x.item_id),size:o.image_size??null,created:Date.parse(o.created_at)||0,sort_order:o.sort_order??null}))},
  async saveOutfit({name,blob,layout,itemIds,cols,fav}){const signature=itemIds.slice().sort().join();
   if(chk(await this.c.from('outfits').select('id').eq('user_id',this.uid).eq('signature',signature),'outfits').length)return{dup:true};
   const image_path=await this.up(blob,'outfits'),row={user_id:this.uid,name,image_path,layout,signature,is_favorite:fav};if(this.sizeCol)row.image_size=blob.size;
@@ -194,16 +225,22 @@ const SB={
   catch(e){await this.c.from('collection_outfits').delete().eq('outfit_id',data.id);await this.c.from('outfit_items').delete().eq('outfit_id',data.id);await this.c.from('outfits').delete().eq('id',data.id);await this.rm(image_path);throw e}return{}},
  async delOutfit(o){await one(this.c.from('outfits').delete().eq('id',o.id).eq('user_id',this.uid),'ลบชุด');if(o.path)await this.rm(o.path)},
  async setFav(id,v){await one(this.c.from('outfits').update({is_favorite:v}).eq('id',id).eq('user_id',this.uid),'รายการโปรด')},
- async cols(){return chk(await this.c.from('collections').select('*, collection_outfits(outfit_id)').eq('user_id',this.uid).order('created_at'),'collections').map(c=>({id:c.id,name:c.name,outfitIds:(c.collection_outfits||[]).map(x=>x.outfit_id)}))},
+ async cols(){return chk(await this.c.from('collections').select('*, collection_outfits('+(this.ordCol?'outfit_id,position':'outfit_id')+')').eq('user_id',this.uid).order('created_at'),'collections').map(c=>({id:c.id,name:c.name,outfitIds:(c.collection_outfits||[]).map(x=>x.outfit_id),pos:Object.fromEntries((c.collection_outfits||[]).filter(x=>x.position!=null).map(x=>[x.outfit_id,x.position]))}))},
  async addCol(name){chk(await this.c.from('collections').insert({name,user_id:this.uid}),'collections')},
  async delCol(id){await one(this.c.from('collections').delete().eq('id',id).eq('user_id',this.uid),'collections')},
  async setCol(outfit_id,collection_id,on){chk(on?await this.c.from('collection_outfits').insert({collection_id,outfit_id,user_id:this.uid}):await this.c.from('collection_outfits').delete().match({collection_id,outfit_id}),'collection_outfits')},
+ async renCol(id,name){await one(this.c.from('collections').update({name}).eq('id',id).eq('user_id',this.uid),'เปลี่ยนชื่อคอลเลกชัน')},
+ async ordOutfits(scope,pairs){if(!this.ordCol)throw new Error('ฐานข้อมูลยังไม่มีคอลัมน์ลำดับ — รัน migration-v2.sql ก่อน');
+  const q=([id,n])=>scope==='all'?this.c.from('outfits').update({sort_order:n}).eq('id',id).eq('user_id',this.uid):this.c.from('collection_outfits').update({position:n}).eq('collection_id',scope).eq('outfit_id',id).eq('user_id',this.uid);
+  for(let i=0;i<pairs.length;i+=6){const rs=await Promise.all(pairs.slice(i,i+6).map(q)),e=rs.find(r=>r.error);if(e)throw new Error('บันทึกลำดับ: '+e.error.message)}},
+ async moveOutfit(oid,from,to){if(to){const r=await this.c.from('collection_outfits').insert({collection_id:to,outfit_id:oid,user_id:this.uid});if(r.error&&r.error.code!=='23505')throw new Error('collection_outfits: '+r.error.message)}
+  if(from){const r=await this.c.from('collection_outfits').delete().eq('collection_id',from).eq('outfit_id',oid).eq('user_id',this.uid);if(r.error)throw new Error('collection_outfits: '+r.error.message)}},
  async measureSize(u){try{const r=await fetch(u,{method:'HEAD'}),n=+r.headers.get('content-length');if(r.ok&&n>0)return n}catch(e){}const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);return(await r.blob()).size},
  async saveSize(t,id,path,size){if(!this.sizeCol)return;const{error}=await this.c.from(t).update({image_size:size}).eq('id',id).eq('image_path',path).eq('user_id',this.uid);if(error)console.warn('save size',error)}
 };
 
 /* ── App state & helpers ── */
-let api,user,S={items:[],outfits:[],cols:[],cats:[],view:'wardrobe',cat:'all',exp:new Set(),q:'',tf:'All',pieces:[],sel:null,rep:false,colView:null,errs:[],bad:[],warns:[]};
+let api,user,S={items:[],outfits:[],cols:[],cats:[],view:'wardrobe',cat:'all',exp:new Set(),q:'',tf:'All',pieces:[],sel:null,rep:false,colView:null,ms:new Set(),mm:false,errs:[],bad:[],warns:[]};
 const item=id=>S.items.find(i=>i.id===id), outfit=id=>S.outfits.find(o=>o.id===id);
 const UNC='ยังไม่ได้จัดหมวดหมู่',bySort=(a,b)=>(a.sort_order||0)-(b.sort_order||0);
 const cat=id=>S.cats.find(c=>c.id===id);
@@ -221,7 +258,7 @@ const loadImg=u=>new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anon
 const fmt=n=>{if(n==null)return'—';if(n<1024)return n+' B';const u=['KB','MB','GB','TB'];let v=n,i=-1;do{v/=1024;i++}while(v>=1024&&i<3);return v.toFixed(1).replace(/\.0$/,'')+' '+u[i]};
 const szTxt=o=>o.size==null?(bf?'กำลังคำนวณ…':'ไม่ทราบ'):fmt(o.size);
 const BADIMG='<span class="bad">โหลดรูปไม่สำเร็จ</span>',IM=(o,a)=>o.url?`<img src="${o.url}" alt="${esc(a||'')}" onerror="imgBad(this)">`:BADIMG,imgBad=el=>{el.outerHTML=BADIMG};
-function resetState(){Object.assign(S,{items:[],outfits:[],cols:[],cats:[],view:'wardrobe',cat:'all',exp:new Set(),ei:0,q:'',tf:'All',pieces:[],sel:null,rep:false,colView:null,errs:[],bad:[],warns:[]})}
+function resetState(){Object.assign(S,{items:[],outfits:[],cols:[],cats:[],view:'wardrobe',cat:'all',exp:new Set(),ei:0,q:'',tf:'All',pieces:[],sel:null,rep:false,colView:null,ms:new Set(),mm:false,errs:[],bad:[],warns:[]})}
 function drawStor(){const e=$('#stor');if(!e)return;const all=S.items.concat(S.outfits),unk=all.filter(o=>o.size==null).length,part=unk||S.errs.length,tot=all.reduce((a,o)=>a+(o.size||0),0);
  e.innerHTML=`พื้นที่เก็บรูป: <b>${part?'≥ ':''}${fmt(tot)}</b>`;e.title=`ขนาดรวมของไฟล์รูปเสื้อผ้า ${S.items.length} ไฟล์ และรูปชุด ${S.outfits.length} ไฟล์ที่เว็บนี้เก็บไว้`+(part?' (ยังคำนวณไม่ครบหรือโหลดข้อมูลบางส่วนไม่สำเร็จ)':'');
  const z=$('#isz'),it=z&&item(z.dataset.id);if(it)z.textContent=szTxt(it)}
@@ -235,6 +272,7 @@ async function backfill(){if(api!==SB||bf)return;const todo=[...S.items.map(o=>[
  drawStor();if(ok&&S.items.concat(S.outfits).some(o=>o.size==null&&o.url))backfill()}
 async function load(){S.bad=[];S.errs=[];const k=['items','outfits','cols','cats'],lb={items:'เสื้อผ้า',outfits:'ชุดที่บันทึก',cols:'คอลเลกชัน',cats:'หมวดหมู่'};
  (await Promise.allSettled(k.map(x=>api[x]()))).forEach((r,i)=>{if(r.status==='fulfilled')S[k[i]]=r.value;else{console.error(r.reason);S.errs.push(`โหลด${lb[k[i]]}ไม่สำเร็จ: ${(r.reason&&r.reason.message)||r.reason}`)}});
+ S.outfits.sort(outCmp);
  if(S.bad.length)S.errs.push(`สร้างลิงก์รูปภาพไม่สำเร็จ ${S.bad.length} รายการ (ตรวจสอบนโยบาย Storage)`);
  await Promise.all(S.items.map(i=>i.url?measure(i):(i.ar=1)));if(!S.ei&&S.cats.length){S.ei=1;S.exp=new Set(parents().map(p=>p.id))}render();backfill()}
 
@@ -296,10 +334,10 @@ async function doUpload(){const cat=$('#uc').value||null,rm=$('#ur').checked,b=$
   try{await api.addItem(await proc(f,rm),f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' '),cat);ok++}catch(e){toast('อัปโหลดไม่สำเร็จ: '+e.message)}}
  closeM();await load();if(ok)toast(`เพิ่มเข้าตู้เสื้อผ้าแล้ว ${ok} ชิ้น`)}
 
-function oCard(o){return`<div class="card" onclick="openOutfit('${o.id}')"><div class="ph">${IM(o,o.name)}</div><b>${esc(o.name)}</b><button class="hb ${o.fav?'on':''}" aria-label="รายการโปรด" onclick="event.stopPropagation();fav('${o.id}')">♥</button></div>`}
+function oCard(o){return`<div class="card" data-oid="${o.id}" onclick="openOutfit('${o.id}')"><div class="ph">${IM(o,o.name)}</div><b>${esc(o.name)}</b><button class="hb ${o.fav?'on':''}" aria-label="รายการโปรด" onclick="event.stopPropagation();fav('${o.id}')">♥</button></div>`}
 function openItem(id){const it=item(id),outs=S.outfits.filter(o=>o.itemIds.includes(id)),cnt={},by={};
  outs.forEach(o=>o.itemIds.forEach(x=>{if(x!==id&&item(x))cnt[x]=(cnt[x]||0)+1}));Object.keys(cnt).forEach(x=>(by[(parentOf(item(x))||{name:UNC}).name]??=[]).push(x));
- modal(`<div class="im"><div class="ph">${IM(it)}</div><div class="f"><label>ชื่อ<input id="in" value="${esc(it.name)}"></label><label>หมวดหมู่<select id="ic">${catOpts(it.category_id)}</select></label><div class="sz">ขนาดไฟล์รูป: <b id="isz" data-id="${id}">${szTxt(it)}</b></div><div class="row"><button class="b" onclick="saveItem('${id}')">บันทึกการแก้ไข</button><button class="g" onclick="bgItem('${id}')">ลบพื้นหลัง</button><button class="g d" onclick="delItem('${id}')">ลบ</button></div></div></div>
+ modal(`<div class="im"><div class="ph">${IM(it)}</div><div class="f"><label>ชื่อ<input id="in" value="${esc(it.name)}"></label><label>หมวดหมู่<select id="ic">${catOpts(it.category_id)}</select></label><div class="sz">ขนาดไฟล์รูป: <b id="isz" data-id="${id}">${szTxt(it)}</b></div><div class="row"><button class="b" onclick="saveItem('${id}')">บันทึกการแก้ไข</button><button class="g" onclick="cropItem('${id}')">ครอป/หมุนรูป</button><button class="g" onclick="bgItem('${id}')">ลบพื้นหลัง</button><button class="g d" onclick="delItem('${id}')">ลบ</button></div></div></div>
  <h3>เคยใส่คู่กับ</h3>${Object.keys(by).length?Object.entries(by).map(([g,a])=>`<h4>${esc(g)}</h4><div class="mini">${a.map(x=>`<div onclick="openItem('${x}')" title="${esc(item(x).name)}"><div class="ph">${IM(item(x))}</div>${cnt[x]>1?`<i>×${cnt[x]}</i>`:''}</div>`).join('')}</div>`).join(''):'<p class="mut">ยังไม่มีชุดที่บันทึกไว้ซึ่งใช้ชิ้นนี้</p>'}
  <h3>ชุดที่บันทึกไว้ (${outs.length})</h3>${outs.length?`<div class="og">${outs.map(oCard).join('')}</div>`:'<p class="mut">จัดชุดในหน้า "จัดชุด" แล้วบันทึก ชุดจะแสดงที่นี่</p>'}`,true)}
 async function saveItem(id){await api.updItem(id,{name:$('#in').value.trim()||'ไม่มีชื่อ',category_id:$('#ic').value||null});closeM();await load();toast('อัปเดตรายการแล้ว')}
@@ -308,23 +346,38 @@ async function delItem(id){if(!confirm('ลบรายการนี้? ร�
 
 /* ── Mix & Match Studio ── */
 function vStudio(){const l=S.items.filter(i=>S.tf==='All'||(parentOf(i)||{}).id===S.tf);
- $('#main').innerHTML=`<div class="studio"><div><div class="bar"><button class="g" onclick="mv(1)">นำขึ้นหน้า</button><button class="g" onclick="mv(-1)">ส่งไปหลัง</button><button class="g" onclick="rep()">เปลี่ยนชิ้น</button><button class="g" onclick="rmPiece()">นำออก</button><button class="g" onclick="S.pieces=[];S.sel=null;drawPieces()">ล้างทั้งหมด</button><div class="sp"></div><button class="g" onclick="dl()">ดาวน์โหลดรูป</button><button class="b" onclick="saveDlg()">บันทึกชุด</button></div><div id="cv" class="cv"></div></div>
+ $('#main').innerHTML=`<div class="studio"><div><div class="bar"><button class="g" onclick="mv(1)">นำขึ้นหน้า</button><button class="g" onclick="mv(-1)">ส่งไปหลัง</button><button class="g" onclick="rep()">เปลี่ยนชิ้น</button><button class="g" id="rmb" onclick="rmPiece()">นำออก</button><button class="g" id="cpb" onclick="dupSel()">ทำซ้ำ</button><button class="g" id="clb" onclick="clearSel()">ล้างการเลือก</button><button class="g" id="mmb" onclick="toggleMM()">เลือกหลายชิ้น</button><button class="g" onclick="S.pieces=[];S.ms=new Set();S.sel=null;drawPieces()">ล้างทั้งหมด</button><div class="sp"></div><button class="g" onclick="dl()">ดาวน์โหลดรูป</button><button class="b" onclick="saveDlg()">บันทึกชุด</button></div><div id="cv" class="cv"></div></div>
  <aside class="tray"><select onchange="S.tf=this.value;vStudio()">${[{id:'All',name:'ทั้งหมด'},...parents()].map(x=>`<option value="${x.id}" ${S.tf===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><div class="tg">${l.map(i=>`<div class="ph" title="${esc(i.name)}" onclick="addPiece('${i.id}')">${IM(i,i.name)}</div>`).join('')}</div>${l.length?'':'<p class="mut">ไปอัปโหลดเสื้อผ้าที่หน้าตู้เสื้อผ้าก่อน</p>'}</aside></div>`;
- const cv=$('#cv');cv.onpointerdown=e=>{const el=e.target.closest('.pi');if(!el){S.sel=null;cv.querySelectorAll('.pi').forEach(x=>x.classList.remove('on'));return}
-  const p=S.pieces.find(x=>x.id===el.dataset.id),rz=e.target.classList.contains('rz'),r=cv.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,o={...p};
-  S.sel=p.id;cv.querySelectorAll('.pi').forEach(x=>x.classList.toggle('on',x===el));el.setPointerCapture(e.pointerId);
-  el.onpointermove=m=>{const dx=(m.clientX-sx)/r.width,dy=(m.clientY-sy)/r.height;if(rz)p.w=Math.min(1.2,Math.max(.08,o.w+dx));else{p.x=o.x+dx;p.y=o.y+dy}
-   el.style.left=p.x*100+'%';el.style.top=p.y*100+'%';el.style.width=p.w*100+'%'};
-  el.onpointerup=()=>{el.onpointermove=el.onpointerup=null}};
+ const cv=$('#cv');let G=null;
+ const sync=()=>{S.sel=[...S.ms].pop()||null;cv.classList.toggle('one',S.ms.size===1);cv.querySelectorAll('.pi').forEach(x=>x.classList.toggle('on',S.ms.has(x.dataset.id)));selUI()},addM=e=>e.ctrlKey||e.metaKey||e.shiftKey||S.mm;
+ cv.onpointerdown=e=>{if(!e.isPrimary||e.button>0)return;const el=e.target.closest('.pi'),r=cv.getBoundingClientRect(),add=addM(e);
+  if(el){const p=S.pieces.find(x=>x.id===el.dataset.id),rz=e.target.classList.contains('rz');
+   if(add&&!rz){S.ms.has(p.id)?S.ms.delete(p.id):S.ms.add(p.id);sync();return}
+   if(!S.ms.has(p.id)||rz){S.ms=new Set([p.id]);sync()}
+   G={t:'mv',rz,x:e.clientX,y:e.clientY,r,o:[...S.ms].map(id=>({...S.pieces.find(x=>x.id===id)})),click:p.id,moved:false,pid:e.pointerId}}
+  else{const base=add?new Set(S.ms):new Set();if(!add){S.ms=base;sync()}G={t:'mq',x:e.clientX,y:e.clientY,r,base,moved:false,pid:e.pointerId}}
+  cv.setPointerCapture(e.pointerId);e.preventDefault()};
+ cv.onpointermove=e=>{if(!G||e.pointerId!==G.pid)return;const dx=e.clientX-G.x,dy=e.clientY-G.y;if(!G.moved&&Math.hypot(dx,dy)<4)return;G.moved=true;
+  if(G.t==='mv'){const fx=dx/G.r.width,fy=dy/G.r.height;G.o.forEach(o=>{const p=S.pieces.find(x=>x.id===o.id),el=cv.querySelector(`[data-id="${o.id}"]`);if(!p||!el)return;if(G.rz)p.w=Math.min(1.2,Math.max(.08,o.w+fx));else{p.x=o.x+fx;p.y=o.y+fy}el.style.left=p.x*100+'%';el.style.top=p.y*100+'%';el.style.width=p.w*100+'%'})}
+  else{let q=cv.querySelector('.mq');if(!q){q=document.createElement('div');q.className='mq';cv.appendChild(q)}
+   const x1=Math.min(G.x,e.clientX),y1=Math.min(G.y,e.clientY),x2=Math.max(G.x,e.clientX),y2=Math.max(G.y,e.clientY);Object.assign(q.style,{left:x1-G.r.left+'px',top:y1-G.r.top+'px',width:x2-x1+'px',height:y2-y1+'px'});
+   const n=new Set(G.base);cv.querySelectorAll('.pi').forEach(el=>{const b=el.getBoundingClientRect();if(b.right>=x1&&b.left<=x2&&b.bottom>=y1&&b.top<=y2)n.add(el.dataset.id)});S.ms=n;sync()}};
+ cv.onpointerup=cv.onpointercancel=e=>{if(!G||e.pointerId!==G.pid)return;if(G.t==='mv'&&!G.moved&&!G.rz&&S.ms.size>1&&!addM(e)){S.ms=new Set([G.click]);sync()}const q=cv.querySelector('.mq');if(q)q.remove();G=null};
  cv.onwheel=e=>{const el=e.target.closest('.pi');if(!el)return;e.preventDefault();const p=S.pieces.find(x=>x.id===el.dataset.id);p.w=Math.min(1.2,Math.max(.08,p.w*(e.deltaY<0?1.06:.94)));el.style.width=p.w*100+'%'};
  drawPieces()}
-function drawPieces(){$('#cv').innerHTML=S.pieces.map((p,i)=>{const it=item(p.itemId);return it?`<div class="pi ${p.id===S.sel?'on':''}" data-id="${p.id}" style="left:${p.x*100}%;top:${p.y*100}%;width:${p.w*100}%;z-index:${i+1}"><img src="${it.url}" alt="${esc(it.name)}" draggable="false"><i class="rz"></i></div>`:''}).join('')+(S.pieces.length?'':'<div class="hint">เลือกเสื้อผ้าจากรายการเพื่อวางที่นี่<br>ลากเพื่อเคลื่อนย้าย ดึงจุดมุมเพื่อปรับขนาด</div>')}
+function drawPieces(){const cx=$('#cv');if(!cx)return;S.ms=new Set([...S.ms].filter(id=>S.pieces.some(p=>p.id===id)));S.sel=[...S.ms].pop()||null;cx.classList.toggle('one',S.ms.size===1);cx.innerHTML=S.pieces.map((p,i)=>{const it=item(p.itemId);return it?`<div class="pi ${S.ms.has(p.id)?'on':''}" data-id="${p.id}" style="left:${p.x*100}%;top:${p.y*100}%;width:${p.w*100}%;z-index:${i+1}"><img src="${it.url}" alt="${esc(it.name)}" draggable="false"><i class="rz"></i></div>`:''}).join('')+(S.pieces.length?'':'<div class="hint">เลือกเสื้อผ้าจากรายการเพื่อวางที่นี่<br>ลากเพื่อเคลื่อนย้าย ดึงจุดมุมเพื่อปรับขนาด<br>ลากบนพื้นที่ว่างเพื่อเลือกหลายชิ้น (Ctrl/⌘ + คลิกเพื่อเพิ่ม)</div>');selUI()}
 function addPiece(id){const it=item(id);if(!it||!it.url)return toast('รูปของชิ้นนี้ยังโหลดไม่ได้ ลองโหลดข้อมูลอีกครั้ง');if(S.rep&&S.sel){const p=S.pieces.find(x=>x.id===S.sel);p.itemId=id;p.ar=it.ar;S.rep=false;drawPieces();return toast('เปลี่ยนชิ้นแล้ว')}
  const[x,y,w]={tops:[.28,.04,.44],outerwear:[.5,.1,.42],bottoms:[.3,.42,.4],other:[.62,.74,.26]}[(parentOf(it)||{}).slug]||[.35,.35,.3];
- const p={id:uuid(),itemId:id,x,y,w,ar:it.ar};S.pieces.push(p);S.sel=p.id;drawPieces()}
-function mv(d){const i=S.pieces.findIndex(p=>p.id===S.sel),j=i+d;if(i<0)return toast('เลือกชิ้นเสื้อผ้าก่อน');if(j<0||j>=S.pieces.length)return;[S.pieces[i],S.pieces[j]]=[S.pieces[j],S.pieces[i]];drawPieces()}
-function rep(){if(!S.sel)return toast('เลือกชิ้นบนผืนผ้าใบก่อน');S.rep=true;toast('แตะชิ้นใหม่ที่ต้องการจากรายการ')}
-function rmPiece(){if(!S.sel)return toast('เลือกชิ้นเสื้อผ้าก่อน');S.pieces=S.pieces.filter(p=>p.id!==S.sel);S.sel=null;drawPieces()}
+ const p={id:uuid(),itemId:id,x,y,w,ar:it.ar};S.pieces.push(p);S.ms=new Set([p.id]);S.sel=p.id;drawPieces()}
+function mv(d){if(!S.ms.size)return toast('เลือกชิ้นเสื้อผ้าก่อน');
+ if(S.ms.size>1){const a=S.pieces.filter(p=>S.ms.has(p.id)),b=S.pieces.filter(p=>!S.ms.has(p.id));S.pieces=d>0?[...b,...a]:[...a,...b];return drawPieces()}
+ const i=S.pieces.findIndex(p=>p.id===S.sel),j=i+d;if(j<0||j>=S.pieces.length)return;[S.pieces[i],S.pieces[j]]=[S.pieces[j],S.pieces[i]];drawPieces()}
+function rep(){if(S.ms.size!==1)return toast('เลือกชิ้นเดียวบนผืนผ้าใบก่อน');S.rep=true;toast('แตะชิ้นใหม่ที่ต้องการจากรายการ')}
+function rmPiece(){if(!S.ms.size)return toast('เลือกชิ้นเสื้อผ้าก่อน');S.pieces=S.pieces.filter(p=>!S.ms.has(p.id));S.ms=new Set();S.sel=null;drawPieces()}
+function clearSel(){S.ms=new Set();S.sel=null;drawPieces()}
+function dupSel(){if(!S.ms.size)return toast('เลือกชิ้นเสื้อผ้าก่อน');const n=new Set();S.pieces.filter(p=>S.ms.has(p.id)).forEach(p=>{const c={...p,id:uuid(),x:p.x+.03,y:p.y+.03};S.pieces.push(c);n.add(c.id)});S.ms=n;drawPieces();toast('ทำซ้ำ '+n.size+' ชิ้นแล้ว')}
+function toggleMM(){S.mm=!S.mm;selUI();toast(S.mm?'โหมดเลือกหลายชิ้น: แตะชิ้นเพื่อเพิ่ม/นำออกจากการเลือก':'ปิดโหมดเลือกหลายชิ้น')}
+function selUI(){const n=S.ms.size,r=$('#rmb');if(r)r.textContent=n>1?`นำออก (${n})`:'นำออก';[['#clb'],['#cpb']].forEach(([q])=>{const b=$(q);if(b)b.disabled=!n});const m=$('#mmb');if(m)m.classList.toggle('on',S.mm)}
 async function exportPNG(){const W=1000,H=1250,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');g.fillStyle='#fffdf8';g.fillRect(0,0,W,H);
  for(const p of S.pieces){const it=item(p.itemId);if(it)g.drawImage(await loadImg(it.url),p.x*W,p.y*H,p.w*W,p.w*W*p.ar)}return new Promise(r=>c.toBlob(r,'image/png'))}
 async function dl(){if(!S.pieces.length)return toast('เพิ่มเสื้อผ้าก่อน');try{const a=document.createElement('a');a.href=URL.createObjectURL(await exportPNG());a.download='outfit.png';a.click()}catch(e){toast('ส่งออกรูปไม่สำเร็จ')}}
@@ -340,17 +393,102 @@ function openOutfit(id){const o=outfit(id);
  <div><h4>คอลเลกชัน</h4>${S.cols.map(c=>`<label class="ck"><input type="checkbox" ${c.outfitIds.includes(id)?'checked':''} onchange="setCol('${id}','${c.id}',this.checked)">${esc(c.name)}</label>`).join('')}</div>
  <div class="row"><button class="g" onclick="fav('${id}').then(()=>openOutfit('${id}'))">${o.fav?'นำออกจากรายการโปรด':'เพิ่มในรายการโปรด'}</button><button class="g" onclick="toStudio('${id}')">เปิดในหน้าจัดชุด</button><button class="g" onclick="dlO('${id}')">ดาวน์โหลด</button><button class="g d" onclick="delO('${id}')">ลบ</button></div></div></div>`,true)}
 async function setCol(oid,cid,on){try{await api.setCol(oid,cid,on)}catch(e){openOutfit(oid);throw e}const c=S.cols.find(c=>c.id===cid),s=new Set(c.outfitIds);on?s.add(oid):s.delete(oid);c.outfitIds=[...s];if(S.view==='collections')render()}
-function toStudio(id){const o=outfit(id);S.pieces=(o.layout||[]).filter(l=>item(l.itemId)).map(l=>({...l,id:uuid()}));S.sel=null;closeM();go('studio')}
+function toStudio(id){const o=outfit(id);S.pieces=(o.layout||[]).filter(l=>item(l.itemId)).map(l=>({...l,id:uuid()}));S.sel=null;S.ms=new Set();closeM();go('studio')}
 async function dlO(id){const o=outfit(id);try{const a=document.createElement('a');a.href=URL.createObjectURL(await(await fetch(o.url)).blob());a.download=o.name+'.png';a.click()}catch(e){toast('ดาวน์โหลดไม่สำเร็จ: '+e.message);if(o.url)window.open(o.url,'_blank')}}
 async function delO(id){if(!confirm('ลบชุดนี้และประวัติการแมตช์ของชุดนี้?'))return;await api.delOutfit(outfit(id));closeM();await load();toast('ลบชุดแล้ว')}
 function vFavorites(){const l=S.outfits.filter(o=>o.fav);$('#main').innerHTML=`<div class="bar"><h2>รายการโปรด</h2></div>${l.length?`<div class="og">${l.map(oCard).join('')}</div>`:'<div class="empty">ยังไม่มีรายการโปรด แตะหัวใจที่ชุดใดก็ได้</div>'}`}
+const outCmp=(a,b)=>{const x=a.sort_order,y=b.sort_order;if(x==null&&y==null)return(b.created||0)-(a.created||0);if(x==null)return-1;if(y==null)return 1;return x-y};
+function colList(c){const p=c.pos||{};return S.outfits.filter(o=>c.outfitIds.includes(o.id)).map((o,i)=>[o,i]).sort(([a,i],[b,j])=>{const x=p[a.id],y=p[b.id];if(x==null&&y==null)return i-j;if(x==null)return-1;if(y==null)return 1;return x-y}).map(([o])=>o)}
+const oCardM=o=>oCard(o).replace(/<\/div>$/,`<button class="mb" aria-label="ย้ายหรือนำออกจากคอลเลกชัน" title="ย้าย / นำออก" onclick="event.stopPropagation();moveDlg('${o.id}')">⇄</button></div>`);
+function dzHtml(v){const ch=S.cols.filter(c=>c.id!==v).map(c=>`<span class="chip" data-act="${v==='all'?'add':'move'}" data-col="${c.id}">${v==='all'?'＋ ':'→ '}${esc(c.name)}</span>`);if(v!=='all')ch.push('<span class="chip" data-act="remove">✕ นำออกจากคอลเลกชันนี้</span>');return ch.length?`<div class="dz" id="dz" aria-hidden="true">${ch.join('')}</div>`:''}
 function vCollections(){const v=S.colView;
- if(v){const c=S.cols.find(c=>c.id===v),l=v==='all'?S.outfits:S.outfits.filter(o=>c.outfitIds.includes(o.id));
-  return $('#main').innerHTML=`<div class="bar"><button class="g" onclick="S.colView=null;render()">กลับ</button><h2>${v==='all'?'ชุดทั้งหมด':esc(c.name)}</h2><div class="sp"></div>${v!=='all'?`<button class="g d" onclick="delCol('${v}')">ลบคอลเลกชัน</button>`:''}</div>${l.length?`<div class="og">${l.map(oCard).join('')}</div>`:'<div class="empty">ยังไม่มีชุดที่นี่ เพิ่มได้จากหน้ารายละเอียดของชุด</div>'}`}
+ if(v){const c=S.cols.find(c=>c.id===v);if(v!=='all'&&!c){S.colView=null;return vCollections()}
+  const l=v==='all'?S.outfits:colList(c),dz=dzHtml(v);
+  $('#main').innerHTML=`<div class="bar"><button class="g" onclick="S.colView=null;render()">กลับ</button><h2>${v==='all'?'ชุดทั้งหมด':esc(c.name)}</h2><div class="sp"></div>${v!=='all'?`<button class="g" onclick="renColDlg('${v}')">✎ เปลี่ยนชื่อ</button><button class="g d" onclick="delCol('${v}')">ลบคอลเลกชัน</button>`:''}</div>${l.length?`<p class="mut sorthint">ลากการ์ดเพื่อจัดลำดับ${dz?(v==='all'?' หรือวางที่แถบคอลเลกชันเพื่อเพิ่มเข้าคอลเลกชัน':' หรือวางที่แถบด้านล่างเพื่อย้าย/นำออก'):''} · บนมือถือให้กดค้างก่อนลาก</p><div class="og sortable">${l.map(v==='all'?oCard:oCardM).join('')}</div>${dz}`:'<div class="empty">ยังไม่มีชุดที่นี่ เพิ่มได้จากหน้ารายละเอียดของชุด</div>'}`;
+  if(l.length)enableSort($('#main .sortable'));return}
  $('#main').innerHTML=`<div class="bar"><h2>คอลเลกชันของฉัน</h2><div class="sp"></div><button class="b" onclick="newCol()">สร้างคอลเลกชันใหม่</button></div><div class="grid">
- <div class="tile" onclick="S.colView='all';render()"><h3 style="margin:0">ชุดทั้งหมด</h3><small>บันทึกแล้ว ${S.outfits.length} ชุด</small></div>
- ${S.cols.map(c=>`<div class="tile" onclick="S.colView='${c.id}';render()"><h3 style="margin:0">${esc(c.name)}</h3><small>${c.outfitIds.length} ชุด</small></div>`).join('')}
- <div class="tile" onclick="go('favorites')"><h3 style="margin:0">รายการโปรด</h3><small>${S.outfits.filter(o=>o.fav).length} ชุด</small></div></div>`}
+  <div class="tile" onclick="S.colView='all';render()"><h3 style="margin:0">ชุดทั้งหมด</h3><small>บันทึกแล้ว ${S.outfits.length} ชุด</small></div>
+  ${S.cols.map(c=>`<div class="tile" onclick="S.colView='${c.id}';render()"><button class="ib tb" title="เปลี่ยนชื่อ" aria-label="เปลี่ยนชื่อคอลเลกชัน" onclick="event.stopPropagation();renColDlg('${c.id}')">✎</button><h3 style="margin:0;padding-right:44px">${esc(c.name)}</h3><small>${c.outfitIds.length} ชุด</small></div>`).join('')}
+  <div class="tile" onclick="go('favorites')"><h3 style="margin:0">รายการโปรด</h3><small>${S.outfits.filter(o=>o.fav).length} ชุด</small></div></div>`}
+function renColDlg(id){const c=S.cols.find(c=>c.id===id);if(!c)return;modal(`<h2>เปลี่ยนชื่อคอลเลกชัน</h2><div class="f" style="margin-top:14px"><label>ชื่อคอลเลกชัน<input id="rn" maxlength="60" value="${esc(c.name)}" onkeydown="if(event.key==='Enter')doRenCol('${id}')"></label><p id="rne" class="rne" role="alert"></p><div class="row"><button class="b" id="rnb" onclick="doRenCol('${id}')">บันทึก</button><button class="g" onclick="closeM()">ยกเลิก</button></div></div>`);const i=$('#rn');i.focus();i.select()}
+async function doRenCol(id){const c=S.cols.find(c=>c.id===id),i=$('#rn'),e=$('#rne'),b=$('#rnb');if(!c||!i||b.disabled)return;const n=i.value.trim().replace(/\s+/g,' '),
+ bad=!n?'กรุณากรอกชื่อคอลเลกชัน':n.length>60?'ชื่อยาวเกินไป (สูงสุด 60 ตัวอักษร)':S.cols.some(x=>x.id!==id&&x.name.toLowerCase()===n.toLowerCase())?'มีคอลเลกชันชื่อนี้อยู่แล้ว':'';
+ if(bad){e.textContent=bad;i.focus();return}if(n===c.name)return closeM();b.disabled=true;b.textContent='กำลังบันทึก…';e.textContent='';
+ try{await api.renCol(id,n);c.name=n;closeM();render();toast('เปลี่ยนชื่อคอลเลกชันแล้ว')}catch(er){console.error(er);b.disabled=false;b.textContent='บันทึก';e.textContent='เปลี่ยนชื่อไม่สำเร็จ: '+(er.message||er)}}
+function moveDlg(oid){const v=S.colView,f=S.cols.find(c=>c.id===v),o=outfit(oid);if(!f||!o)return;const ot=S.cols.filter(c=>c.id!==v);
+ modal(`<h2>จัดการ “${esc(o.name)}”</h2><p class="mut" style="margin:6px 0 12px">ตอนนี้อยู่ใน “${esc(f.name)}”</p><div class="f">${ot.length?`<h4>ย้ายไปยัง</h4><div class="row">${ot.map(c=>`<button class="g" onclick="moveOutfit('${oid}','${v}','${c.id}')">${esc(c.name)}${c.outfitIds.includes(oid)?' ✓':''}</button>`).join('')}</div>`:'<p class="mut">ยังไม่มีคอลเลกชันอื่น</p>'}<h4>หรือ</h4><div class="row"><button class="g d" onclick="moveOutfit('${oid}','${v}',null)">นำออกจากคอลเลกชันนี้</button><button class="g" onclick="closeM()">ปิด</button></div></div>`)}
+async function moveOutfit(oid,from,to){const f=from&&S.cols.find(c=>c.id===from),t=to&&S.cols.find(c=>c.id===to),dup=t&&t.outfitIds.includes(oid);if(!f&&!t)return;if(f&&t&&f.id===t.id)return;
+ try{await api.moveOutfit(oid,f?f.id:null,t&&!dup?t.id:null)}catch(e){render();throw e}
+ if(f){f.outfitIds=f.outfitIds.filter(x=>x!==oid);if(f.pos)delete f.pos[oid]}if(t&&!dup){t.outfitIds=[...t.outfitIds,oid];if(t.pos)delete t.pos[oid]}
+ closeM();render();toast(!t?`นำชุดออกจาก “${f.name}” แล้ว (ชุดยังอยู่ในตู้เสื้อผ้า)`:dup?`ชุดนี้อยู่ใน “${t.name}” อยู่แล้ว`:f?`ย้ายไป “${t.name}” แล้ว`:`เพิ่มใน “${t.name}” แล้ว`)}
+async function saveOrder(ids){const v=S.colView,c=v&&v!=='all'?S.cols.find(c=>c.id===v):null,ch=[];
+ if(api===SB&&!SB.ordCol){render();return toast('ต้องรัน migration-v2.sql ก่อน จึงจะบันทึกลำดับได้')}
+ ids.forEach((id,i)=>{const o=outfit(id),old=c?(c.pos||{})[id]:o&&o.sort_order;if(old!==i+1)ch.push([id,i+1])});if(!ch.length)return render();
+ try{await api.ordOutfits(c?c.id:'all',ch)}catch(e){console.error(e);toast('บันทึกลำดับไม่สำเร็จ: '+e.message);return load()}
+ if(c)c.pos=Object.fromEntries(ids.map((id,i)=>[id,i+1]));else{ids.forEach((id,i)=>{const o=outfit(id);if(o)o.sort_order=i+1});S.outfits.sort(outCmp)}
+ render();toast('บันทึกลำดับแล้ว')}
+/* Pointer-based sorting: mouse = drag after 5px, touch = long-press 380ms. Drop on the bottom strip to move/remove. */
+function enableSort(box){let D=null;const cards=()=>[...box.querySelectorAll('.card[data-oid]')];
+ box.addEventListener('click',e=>{if(box._sup){e.stopPropagation();e.preventDefault();box._sup=false}},true);box.addEventListener('dragstart',e=>e.preventDefault());
+ const place=()=>{const x=D.lx,y=D.ly;D.g.style.left=x-D.dx+'px';D.g.style.top=y-D.dy+'px';const over=document.elementFromPoint(x,y),chip=over&&over.closest('.dz .chip');
+  document.querySelectorAll('.dz .chip.hot').forEach(c=>c.classList.remove('hot'));D.chip=null;if(chip){chip.classList.add('hot');D.chip=chip;return}
+  const t=over&&over.closest('.card[data-oid]');
+  if(t&&t!==D.cd&&box.contains(t)){const b=t.getBoundingClientRect(),cs=cards(),one=cs.every(c=>c.offsetLeft===cs[0].offsetLeft),after=one?y>b.top+b.height/2:x>b.left+b.width/2;
+   if(after){if(t.nextElementSibling!==D.cd)t.after(D.cd)}else if(t.previousElementSibling!==D.cd)t.before(D.cd)}
+  else if(over===box){const L=cards().filter(c=>c!==D.cd).pop();if(L){const b=L.getBoundingClientRect();if(y>b.bottom||(y>b.top&&x>b.right))box.append(D.cd)}}};
+ const tick=()=>{if(!D||!D.on)return;const H=innerHeight,zh=D.dz?D.dz.offsetHeight+30:0;let v=0;if(!D.chip){if(D.ly<80)v=-Math.ceil((80-D.ly)/5);else if(D.ly>H-zh-80&&D.ly<H-zh)v=Math.ceil((D.ly-(H-zh-80))/5)}if(v){scrollBy(0,v);place()}D.raf=requestAnimationFrame(tick)};
+ const start=()=>{if(!D||D.on)return;D.on=true;const cd=D.cd,r=cd.getBoundingClientRect();D.dx=D.x-r.left;D.dy=D.y-r.top;D.g=cd.cloneNode(true);D.g.classList.add('ghost');Object.assign(D.g.style,{width:r.width+'px',left:r.left+'px',top:r.top+'px'});document.body.appendChild(D.g);
+  cd.classList.add('dragging');try{cd.setPointerCapture(D.id)}catch(e){}document.body.classList.add('sorting');D.dz=document.getElementById('dz');if(D.dz)D.dz.classList.add('show');
+  D.tm=e=>e.preventDefault();document.addEventListener('touchmove',D.tm,{passive:false});D.raf=requestAnimationFrame(tick);if(navigator.vibrate)navigator.vibrate(12)};
+ const end=ok=>{if(!D)return;const d=D;D=null;clearTimeout(d.t);if(!d.on)return;cancelAnimationFrame(d.raf);document.removeEventListener('touchmove',d.tm);d.g.remove();d.cd.classList.remove('dragging');document.body.classList.remove('sorting');if(d.dz)d.dz.classList.remove('show');
+  document.querySelectorAll('.dz .chip.hot').forEach(c=>c.classList.remove('hot'));box._sup=true;setTimeout(()=>box._sup=false,0);
+  if(!ok)return render();const oid=d.cd.dataset.oid;if(d.chip){const a=d.chip.dataset;return sortDrop(oid,a.act,a.col)}saveOrder(cards().map(c=>c.dataset.oid))};
+ box.onpointerdown=e=>{const cd=e.target.closest('.card[data-oid]');if(!cd||e.target.closest('button')||!e.isPrimary||e.button>0)return;D={cd,x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,id:e.pointerId,touch:e.pointerType!=='mouse',on:false};if(D.touch)D.t=setTimeout(start,380)};
+ box.onpointermove=e=>{if(!D||e.pointerId!==D.id)return;D.lx=e.clientX;D.ly=e.clientY;if(!D.on){const d=Math.hypot(e.clientX-D.x,e.clientY-D.y);if(D.touch){if(d>10){clearTimeout(D.t);D=null}}else if(d>5)start();return}e.preventDefault();place()};
+ box.onpointerup=()=>end(true);box.onpointercancel=()=>end(false)}
+async function sortDrop(oid,act,col){const v=S.colView;if(act==='add'){const c=S.cols.find(c=>c.id===col);if(c&&c.outfitIds.includes(oid)){render();return toast(`ชุดนี้อยู่ใน “${c.name}” แล้ว`)}return moveOutfit(oid,null,col)}return moveOutfit(oid,v,act==='move'?col:null)}
+
+/* ── Image crop editor (replaces the stored image through api.updItem so size metadata/orphans are handled) ── */
+let CR=null;const clp=(v,a,b)=>Math.max(a,Math.min(b,v)),CRR=[['อิสระ',null],['1:1 จัตุรัส',1],['4:5 แนวตั้ง',4/5],['3:4 แนวตั้ง',3/4],['16:9 แนวนอน',16/9]];
+async function cropItem(id){const it=item(id);if(!it||!it.url)return toast('รูปยังโหลดไม่ได้ ลองโหลดข้อมูลอีกครั้ง');toast('กำลังเปิดตัวแก้ไขรูป…');
+ try{const r=await fetch(it.url);if(!r.ok)throw new Error('HTTP '+r.status);const b=await r.blob(),bmp=await createImageBitmap(b);CR={id,bmp,png:b.type==='image/png',rot:0,z:1,ar:null};crBuild()}catch(e){toast('เปิดตัวแก้ไขรูปไม่สำเร็จ: '+e.message)}}
+function crBuild(){modal(`<h2>ครอปและหมุนรูป</h2><div class="crop" style="margin-top:14px"><div><div class="crs" id="crs"><canvas id="crc"></canvas><div class="cf" id="cf">${['nw','n','ne','e','se','s','sw','w'].map(d=>`<i class="h ${d}" data-d="${d}"></i>`).join('')}</div></div><p class="mut" style="font-size:12px;margin:8px 0 0">ลากกรอบเพื่อย้าย · ดึงจุดเพื่อปรับขนาด · ลากนอกกรอบเพื่อเลื่อนรูป · เลื่อนล้อเมาส์เพื่อซูม</p></div>
+ <div class="f"><div><h4>สัดส่วน</h4><div class="chips" id="crch">${CRR.map((r,i)=>`<button class="g" onclick="crAR(${i})">${r[0]}</button>`).join('')}</div></div>
+ <div><h4>ซูม</h4><div class="row" style="align-items:center;flex-wrap:nowrap"><button class="ib" aria-label="ซูมออก" onclick="crZoom(CR.z/1.2)">−</button><input type="range" id="crz" min="50" max="500" value="100" style="flex:1;min-width:80px;padding:0" aria-label="ซูม" oninput="crZoom(this.value/100)"><button class="ib" aria-label="ซูมเข้า" onclick="crZoom(CR.z*1.2)">＋</button></div></div>
+ <div class="row"><button class="g" onclick="crRot(-1)">↺ หมุนซ้าย</button><button class="g" onclick="crRot(1)">↻ หมุนขวา</button></div>
+ <div><h4>ตัวอย่าง</h4><canvas id="crp" class="cpv"></canvas><p class="mut" id="crd" style="font-size:12px;text-align:center;margin:6px 0 0"></p></div>
+ <div class="row"><button class="b" onclick="crApply()">ใช้การครอป</button><button class="g" onclick="openItem('${CR.id}')">ยกเลิก</button></div></div></div>`,true);
+ const st=$('#crs'),c=$('#crc'),dp=devicePixelRatio||1;CR.W=st.clientWidth;CR.H=st.clientHeight;c.width=CR.W*dp;c.height=CR.H*dp;CR.g=c.getContext('2d');CR.g.scale(dp,dp);crEv();crSrc();crAR(0)}
+function crRect(){const C=CR,iw=C.sw*C.vs,ih=C.sh*C.vs,x=Math.max(0,C.ox),y=Math.max(0,C.oy);return{x,y,w:Math.min(C.W,C.ox+iw)-x,h:Math.min(C.H,C.oy+ih)-y}}
+function crSrc(){const C=CR,b=C.bmp,r=C.rot,sw=r%2?b.height:b.width,sh=r%2?b.width:b.height,c=document.createElement('canvas');c.width=sw;c.height=sh;const g=c.getContext('2d');g.translate(sw/2,sh/2);g.rotate(r*Math.PI/2);g.drawImage(b,-b.width/2,-b.height/2);
+ Object.assign(C,{src:c,sw,sh,z:1,fit:Math.min((C.W-24)/sw,(C.H-24)/sh)});C.vs=C.fit;C.ox=(C.W-sw*C.vs)/2;C.oy=(C.H-sh*C.vs)/2;const R=crRect();C.f={x:R.x,y:R.y,w:R.w,h:R.h};crFit();crView()}
+function crFit(){const C=CR;if(!C.ar)return;const R=crRect(),f=C.f,cx=f.x+f.w/2,cy=f.y+f.h/2;let w=R.w,h=w/C.ar;if(h>R.h){h=R.h;w=h*C.ar}C.f={x:clp(cx-w/2,R.x,R.x+R.w-w),y:clp(cy-h/2,R.y,R.y+R.h-h),w,h}}
+function crAR(i){CR.ar=CRR[i][1];$('#crs').classList.toggle('fx',!!CR.ar);document.querySelectorAll('#crch .g').forEach((b,j)=>b.classList.toggle('on',j===i));crFit();crView()}
+function crRot(d){CR.rot=(CR.rot+d+4)%4;crSrc();crAR(CRR.findIndex(r=>r[1]===CR.ar))}
+function crZoom(z){const C=CR;z=clp(z,.5,5);const k=z/C.z,f=C.f,cx=f.x+f.w/2,cy=f.y+f.h/2;C.ox=cx-(cx-C.ox)*k;C.oy=cy-(cy-C.oy)*k;C.z=z;crView()}
+function crView(){const C=CR;if(!C||!C.g)return;C.vs=C.fit*C.z;const iw=C.sw*C.vs,ih=C.sh*C.vs;C.ox=iw<=C.W?(C.W-iw)/2:clp(C.ox,C.W-iw,0);C.oy=ih<=C.H?(C.H-ih)/2:clp(C.oy,C.H-ih,0);
+ const R=crRect(),f=C.f;let w=Math.min(f.w,R.w),h=Math.min(f.h,R.h);if(C.ar){if(w/h>C.ar)w=h*C.ar;else h=w/C.ar}C.f={x:clp(f.x,R.x,R.x+R.w-w),y:clp(f.y,R.y,R.y+R.h-h),w,h};
+ const e=$('#cf');if(e)Object.assign(e.style,{left:C.f.x+'px',top:C.f.y+'px',width:C.f.w+'px',height:C.f.h+'px'});
+ C.g.clearRect(0,0,C.W,C.H);C.g.imageSmoothingQuality='high';C.g.drawImage(C.src,C.ox,C.oy,iw,ih);const z=$('#crz');if(z)z.value=Math.round(C.z*100);crPrev()}
+function crReg(){const C=CR,f=C.f,vs=C.vs,sx=Math.max(0,Math.round((f.x-C.ox)/vs)),sy=Math.max(0,Math.round((f.y-C.oy)/vs));return{sx,sy,sw:Math.min(C.sw-sx,Math.round(f.w/vs)),sh:Math.min(C.sh-sy,Math.round(f.h/vs))}}
+function crPrev(){const C=CR,p=$('#crp');if(!p)return;const r=crReg(),k=Math.min(1,200/Math.max(r.sw,r.sh,1));p.width=Math.max(1,Math.round(r.sw*k));p.height=Math.max(1,Math.round(r.sh*k));p.getContext('2d').drawImage(C.src,r.sx,r.sy,r.sw,r.sh,0,0,p.width,p.height);$('#crd').textContent=`${r.sw} × ${r.sh} px (ความละเอียดเดิม ไม่ลดคุณภาพ)`}
+function crResize(d,f,dx,dy,R){const M=24;let x1=f.x,y1=f.y,x2=f.x+f.w,y2=f.y+f.h;
+ if(d.includes('w'))x1=clp(x1+dx,R.x,x2-M);if(d.includes('e'))x2=clp(x2+dx,x1+M,R.x+R.w);if(d.includes('n'))y1=clp(y1+dy,R.y,y2-M);if(d.includes('s'))y2=clp(y2+dy,y1+M,R.y+R.h);
+ if(CR.ar&&d.length===2){const sx=d.includes('e')?1:-1,sy=d.includes('s')?1:-1,ax=sx>0?f.x:f.x+f.w,ay=sy>0?f.y:f.y+f.h,mw=Math.min(sx>0?R.x+R.w-ax:ax-R.x,(sy>0?R.y+R.h-ay:ay-R.y)*CR.ar),w=Math.max(M,Math.min(Math.abs(x2-x1),mw)),h=w/CR.ar;return{x:sx>0?ax:ax-w,y:sy>0?ay:ay-h,w,h}}
+ return{x:x1,y:y1,w:x2-x1,h:y2-y1}}
+function crEv(){const st=$('#crs');let D=null;
+ st.onpointerdown=e=>{if(!e.isPrimary)return;const h=e.target.closest('.h'),inF=e.target.closest('.cf');D={m:h?'r':inF?'m':'p',d:h&&h.dataset.d,x:e.clientX,y:e.clientY,f:{...CR.f},ox:CR.ox,oy:CR.oy,id:e.pointerId};st.setPointerCapture(e.pointerId);e.preventDefault()};
+ st.onpointermove=e=>{if(!D||e.pointerId!==D.id)return;const dx=e.clientX-D.x,dy=e.clientY-D.y,R=crRect(),f=D.f;
+  if(D.m==='p'){CR.ox=D.ox+dx;CR.oy=D.oy+dy}else if(D.m==='m')CR.f={...f,x:clp(f.x+dx,R.x,R.x+R.w-f.w),y:clp(f.y+dy,R.y,R.y+R.h-f.h)};else CR.f=crResize(D.d,f,dx,dy,R);crView()};
+ st.onpointerup=st.onpointercancel=()=>{D=null};st.onwheel=e=>{e.preventDefault();crZoom(CR.z*(e.deltaY<0?1.1:.9))}}
+async function crApply(){const C=CR;if(!C)return;const r=crReg();if(r.sw<8||r.sh<8)throw new Error('พื้นที่ครอปเล็กเกินไป');
+ if(!C.rot&&!r.sx&&!r.sy&&r.sw>=C.sw&&r.sh>=C.sh)return toast('ยังไม่ได้เปลี่ยนแปลงรูป');
+ const c=document.createElement('canvas');c.width=r.sw;c.height=r.sh;c.getContext('2d').drawImage(C.src,r.sx,r.sy,r.sw,r.sh,0,0,r.sw,r.sh);
+ const out=await new Promise(res=>c.toBlob(res,C.png?'image/png':'image/jpeg',.95));if(!out)throw new Error('สร้างไฟล์รูปไม่สำเร็จ');
+ const id=C.id,it=item(id);if(!it)throw new Error('ไม่พบรายการนี้แล้ว');toast('กำลังบันทึกรูป…');await api.updItem(id,{},out,it);CR=null;await load();if(item(id))openItem(id);toast('ครอปรูปแล้ว ขนาดไฟล์อัปเดตแล้ว')}
+addEventListener('keydown',e=>{if(S.view!=='studio'||$('.mo')||/INPUT|SELECT|TEXTAREA/.test((e.target||{}).tagName||''))return;const k=e.key,m=e.ctrlKey||e.metaKey;
+ if((k==='Delete'||k==='Backspace')&&S.ms.size){e.preventDefault();rmPiece()}else if(k==='Escape'&&S.ms.size)clearSel();
+ else if(m&&k.toLowerCase()==='a'){e.preventDefault();S.ms=new Set(S.pieces.map(p=>p.id));drawPieces()}else if(m&&k.toLowerCase()==='d'){e.preventDefault();dupSel()}});
 async function newCol(){const n=(prompt('ชื่อคอลเลกชัน')||'').trim();if(n){await api.addCol(n);await load();toast('สร้างคอลเลกชันแล้ว')}}
 async function delCol(id){if(!confirm('ลบคอลเลกชันนี้? ชุดต่างๆ จะยังอยู่ในตู้เสื้อผ้า'))return;await api.delCol(id);S.colView=null;await load()}
 
@@ -374,7 +512,7 @@ async function doDelCat(id){const ids=kids(id),t=($('#dt')||{}).value||null;
  try{await api.delCat(ids,t);S.items.forEach(i=>{if(ids.includes(i.category_id))i.category_id=t});S.cats=S.cats.filter(c=>!ids.includes(c.id));if(ids.includes(S.cat))S.cat='all';render();manageCats();toast('ลบหมวดหมู่แล้ว เสื้อผ้าถูกย้ายเรียบร้อย')}catch(e){toast('ลบไม่สำเร็จ: '+e.message)}}
 
 let busy=false;const once=f=>async(...a)=>{if(busy)return;busy=true;try{return await f(...a)}catch(e){console.error(e);toast('ทำรายการไม่สำเร็จ: '+(e.message||e))}finally{busy=false}};
-['saveItem','bgItem','delItem','delO','fav','setCol','newCol','delCol','doUpload'].forEach(n=>window[n]=once(window[n]));
+['saveItem','bgItem','delItem','delO','fav','setCol','newCol','delCol','doUpload','moveOutfit','crApply'].forEach(n=>window[n]=once(window[n]));
 addEventListener('unhandledrejection',e=>{console.error(e.reason);toast('เกิดข้อผิดพลาด: '+((e.reason&&e.reason.message)||e.reason))});
 boot();
 </script>
