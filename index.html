@@ -98,6 +98,11 @@ main{padding:22px 18px 100px}}
 .chip{padding:9px 16px}
 .grid,.og{grid-template-columns:repeat(2,1fr);gap:12px}.bar input{width:100%}#toast{bottom:90px}
 main{padding:16px 14px 110px}.md{padding:22px 16px}.mr{font-size:14px}.mr:not(.p){margin-left:8px}}
+.err{border:1px solid #d9b3a8;background:#f6e4de;color:#7a3b2e;border-radius:14px;padding:14px 16px;margin-bottom:18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}.err .t{flex:1;min-width:200px}.err ul{margin:2px 0 0;padding-left:18px;flex-basis:100%;order:3;font-size:13px}
+.sz{color:var(--mut);font-size:13px}.sz b{color:var(--ink);font-weight:400}
+#stor{position:fixed;right:12px;bottom:12px;z-index:45;background:var(--card);border:1px solid var(--line);border-radius:99px;padding:2px 12px;font-size:12px;line-height:1.6;color:var(--mut);pointer-events:none;box-shadow:0 1px 6px rgba(75,61,49,.08)}#stor b{font-weight:400;color:var(--ink)}
+@media(max-width:600px){#stor{bottom:calc(62px + env(safe-area-inset-bottom));right:8px;font-size:11px}}
+.bad{color:var(--mut);font-size:12px;padding:8px;text-align:center}.ld{padding:70px 20px;text-align:center;color:var(--mut)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -132,13 +137,13 @@ const Local={
  async updCat(id,patch){const c=(await idb.all('cats')).find(c=>c.id===id);await idb.put('cats',{...c,...patch})},
  async setOrder(l){for(const[id,sort_order]of l)await this.updCat(id,{sort_order})},
  async delCat(ids,target){for(const it of await idb.all('items'))if(ids.includes(it.category_id))await idb.put('items',{...it,category_id:target||null});for(const id of ids)await idb.del('cats',id)},
- async items(){return(await idb.all('items')).sort(newest).map(i=>({...i,url:URL.createObjectURL(i.blob)}))},
- addItem:(blob,name,category)=>idb.put('items',{id:uuid(),name,category_id:category||null,blob,created:Date.now()}),
- async updItem(id,patch,blob){const o=(await idb.all('items')).find(i=>i.id===id);await idb.put('items',{...o,...patch,...(blob?{blob}:{})})},
+ async items(){return(await idb.all('items')).sort(newest).map(i=>({...i,url:URL.createObjectURL(i.blob),size:i.blob?i.blob.size:null}))},
+ addItem:(blob,name,category)=>idb.put('items',{id:uuid(),name,category_id:category||null,blob,size:blob.size,created:Date.now()}),
+ async updItem(id,patch,blob){const o=(await idb.all('items')).find(i=>i.id===id);await idb.put('items',{...o,...patch,...(blob?{blob,size:blob.size}:{})})},
  delItem:it=>idb.del('items',it.id),
- async outfits(){return(await idb.all('outfits')).sort(newest).map(o=>({...o,url:URL.createObjectURL(o.blob)}))},
+ async outfits(){return(await idb.all('outfits')).sort(newest).map(o=>({...o,url:URL.createObjectURL(o.blob),size:o.blob?o.blob.size:null}))},
  async saveOutfit({name,blob,layout,itemIds,cols,fav}){const sig=itemIds.slice().sort().join();if((await idb.all('outfits')).some(o=>o.sig===sig))return{dup:true};
-  const id=uuid();await idb.put('outfits',{id,name,blob,layout,itemIds,sig,fav,created:Date.now()});
+  const id=uuid();await idb.put('outfits',{id,name,blob,size:blob.size,layout,itemIds,sig,fav,created:Date.now()});
   for(const c of(await idb.all('cols')).filter(c=>cols.includes(c.id)))await idb.put('cols',{...c,outfitIds:[...c.outfitIds,id]});return{}},
  async delOutfit(o){await idb.del('outfits',o.id);for(const c of await idb.all('cols'))if(c.outfitIds.includes(o.id))await idb.put('cols',{...c,outfitIds:c.outfitIds.filter(x=>x!==o.id)})},
  async setFav(id,v){const o=(await idb.all('outfits')).find(o=>o.id===id);await idb.put('outfits',{...o,fav:v})},
@@ -147,40 +152,58 @@ const Local={
 };
 
 /* ── Supabase data layer (auth, storage, RLS-protected tables) ── */
+const chk=(r,w)=>{if(r.error){const e=new Error(w+': '+r.error.message);e.code=r.error.code;throw e}return r.data||[]};
+const one=async(q,w)=>{const d=chk(await q.select('id'),w);if(!d.length)throw new Error(w+': ไม่พบข้อมูลหรือไม่มีสิทธิ์ (ตรวจสอบนโยบาย RLS)');return d};
 const SB={
- async init(){this.c=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);const{data}=await this.c.auth.getSession();if(!data.session)return null;this.uid=data.session.user.id;
-  const{count}=await this.c.from('collections').select('*',{count:'exact',head:true});if(!count)await this.c.from('collections').insert(DEFCOLS.map(name=>({name,user_id:this.uid})));const cc=await this.c.from('categories').select('*',{count:'exact',head:true});if(!cc.count)await this.c.rpc('seed_default_categories',{uid:this.uid});return{email:data.session.user.email}},
- async signIn(email,password){const{error}=await this.c.auth.signInWithPassword({email,password});if(error)throw error},
- async signUp(email,password){const{data,error}=await this.c.auth.signUp({email,password});if(error)throw error;return!!data.session},
+ mk(){const k=SUPABASE_URL+'|'+SUPABASE_ANON_KEY;if(!this.c||this.k!==k){this.c=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);this.k=k}return this.c},
+ async init(){this.mk();const{data,error}=await this.c.auth.getSession();if(error)throw error;if(!data.session)return null;this.uid=data.session.user.id;const w=[];
+  const n=await this.c.from('collections').select('*',{count:'exact',head:true}).eq('user_id',this.uid);
+  if(n.error)w.push('collections: '+n.error.message);else if(n.count===0){const r=await this.c.from('collections').insert(DEFCOLS.map(name=>({name,user_id:this.uid})));if(r.error)w.push('สร้างคอลเลกชันเริ่มต้นไม่สำเร็จ: '+r.error.message)}
+  const cc=await this.c.from('categories').select('*',{count:'exact',head:true}).eq('user_id',this.uid);
+  if(cc.error)w.push('categories: '+cc.error.message);else if(cc.count===0){const r=await this.c.rpc('seed_default_categories',{uid:this.uid});if(r.error){try{await this.seedCats()}catch(e){w.push('สร้างหมวดหมู่เริ่มต้นไม่สำเร็จ: '+e.message+' (rpc: '+r.error.message+')')}}}
+  const pr=await Promise.all(['items','outfits'].map(t=>this.c.from(t).select('image_size').limit(1))),miss=pr.find(r=>r.error&&(r.error.code==='42703'||/image_size/.test(r.error.message)));
+  this.sizeCol=!miss;if(miss)w.push('ฐานข้อมูลยังไม่มีคอลัมน์ image_size — รันไฟล์ migration (ดู README) ขนาดไฟล์จะยังไม่ถูกบันทึกถาวรจนกว่าจะรัน');
+  return{email:data.session.user.email,warn:w}},
+ async seedCats(){let o=1;for(const[,pn,ss]of DEFCATS){const p=chk(await this.c.from('categories').insert({user_id:this.uid,name:pn,parent_id:null,sort_order:o++}).select(),'categories')[0];chk(await this.c.from('categories').insert(ss.map(([,sn],k)=>({user_id:this.uid,name:sn,parent_id:p.id,sort_order:k+1}))),'categories')}},
+ async signIn(email,password){const{error}=await this.mk().auth.signInWithPassword({email,password});if(error)throw error},
+ async signUp(email,password){const{data,error}=await this.mk().auth.signUp({email,password});if(error)throw error;return!!data.session},
  signOut:()=>SB.c.auth.signOut(),
- async sign(paths){const m={};if(!paths.length)return m;const{data}=await this.c.storage.from('wardrobe').createSignedUrls(paths,3600);(data||[]).forEach(d=>m[d.path]=d.signedUrl);return m},
- async up(blob,kind){const p=`${this.uid}/${kind}/${uuid()}.${blob.type==='image/png'?'png':'jpg'}`;const{error}=await this.c.storage.from('wardrobe').upload(p,blob,{contentType:blob.type});if(error)throw error;return p},
- async cats(){return(await this.c.from('categories').select('*').order('sort_order')).data||[]},
+ async sign(paths){const m={};if(!paths.length)return m;const r=await this.c.storage.from('wardrobe').createSignedUrls(paths,86400);
+  if(r.error){S.bad.push(r.error.message);return m}(r.data||[]).forEach(d=>{if(d.signedUrl)m[d.path]=d.signedUrl;else S.bad.push(d.path+(d.error?' ('+d.error+')':''))});return m},
+ async up(blob,kind){const p=`${this.uid}/${kind}/${uuid()}.${blob.type==='image/png'?'png':'jpg'}`;const{error}=await this.c.storage.from('wardrobe').upload(p,blob,{contentType:blob.type});if(error)throw new Error('อัปโหลดรูป: '+error.message);return p},
+ async rm(path){const{error}=await this.c.storage.from('wardrobe').remove([path]);if(error){console.error(error);toast('ลบไฟล์รูปออกจาก Storage ไม่สำเร็จ (ไฟล์ค้าง): '+path)}},
+ async cats(){return chk(await this.c.from('categories').select('*').eq('user_id',this.uid).order('sort_order'),'categories')},
  async addCat(name,parent_id,sort_order){const{data,error}=await this.c.from('categories').insert({user_id:this.uid,name,parent_id:parent_id||null,sort_order}).select().single();if(error)throw error;return data},
  async updCat(id,patch){const{error}=await this.c.from('categories').update(patch).eq('id',id);if(error)throw error},
- async setOrder(l){await Promise.all(l.map(([id,sort_order])=>this.c.from('categories').update({sort_order}).eq('id',id)))},
+ async setOrder(l){const rs=await Promise.all(l.map(([id,sort_order])=>this.c.from('categories').update({sort_order}).eq('id',id)));const e=rs.find(r=>r.error);if(e)throw e.error},
  async delCat(ids,target){const a=await this.c.from('items').update({category_id:target||null}).in('category_id',ids);if(a.error)throw a.error;const{error}=await this.c.from('categories').delete().in('id',ids);if(error)throw error},
- async items(){const{data}=await this.c.from('items').select('*').order('created_at',{ascending:false});const m=await this.sign(data.map(i=>i.image_path));return data.map(i=>({id:i.id,name:i.name,category_id:i.category_id,path:i.image_path,url:m[i.image_path]}))},
- async addItem(blob,name,category){const image_path=await this.up(blob,'items');const{error}=await this.c.from('items').insert({user_id:this.uid,name,category_id:category||null,image_path});if(error)throw error},
- async updItem(id,patch,blob,old){const u={...patch};if(blob){u.image_path=await this.up(blob,'items');await this.c.storage.from('wardrobe').remove([old.path])}await this.c.from('items').update(u).eq('id',id)},
- async delItem(it){await this.c.storage.from('wardrobe').remove([it.path]);await this.c.from('items').delete().eq('id',it.id)},
- async outfits(){const{data}=await this.c.from('outfits').select('*, outfit_items(item_id)').order('created_at',{ascending:false});const m=await this.sign(data.map(o=>o.image_path));
-  return data.map(o=>({id:o.id,name:o.name,path:o.image_path,url:m[o.image_path],layout:o.layout,fav:o.is_favorite,itemIds:o.outfit_items.map(x=>x.item_id)}))},
+ async items(){const d=chk(await this.c.from('items').select('*').eq('user_id',this.uid).order('created_at',{ascending:false}),'items'),m=await this.sign(d.map(i=>i.image_path));return d.map(i=>({id:i.id,name:i.name,category_id:i.category_id,path:i.image_path,url:m[i.image_path],size:i.image_size??null}))},
+ async addItem(blob,name,category){const path=await this.up(blob,'items'),row={user_id:this.uid,name,category_id:category||null,image_path:path};if(this.sizeCol)row.image_size=blob.size;const{error}=await this.c.from('items').insert(row);if(error){await this.rm(path);throw error}},
+ async updItem(id,patch,blob,old){const u={...patch};let np;if(blob){np=await this.up(blob,'items');u.image_path=np;if(this.sizeCol)u.image_size=blob.size}
+  try{await one(this.c.from('items').update(u).eq('id',id).eq('user_id',this.uid),'แก้ไขรายการ')}catch(e){if(np)await this.rm(np);throw e}if(np&&old&&old.path)await this.rm(old.path)},
+ async delItem(it){await one(this.c.from('items').delete().eq('id',it.id).eq('user_id',this.uid),'ลบรายการ');if(it.path)await this.rm(it.path)},
+ async outfits(){const d=chk(await this.c.from('outfits').select('*, outfit_items(item_id)').eq('user_id',this.uid).order('created_at',{ascending:false}),'outfits'),m=await this.sign(d.map(o=>o.image_path));
+  return d.map(o=>({id:o.id,name:o.name,path:o.image_path,url:m[o.image_path],layout:o.layout,fav:o.is_favorite,itemIds:(o.outfit_items||[]).map(x=>x.item_id),size:o.image_size??null}))},
  async saveOutfit({name,blob,layout,itemIds,cols,fav}){const signature=itemIds.slice().sort().join();
-  const{data:ex}=await this.c.from('outfits').select('id').eq('signature',signature);if(ex&&ex.length)return{dup:true};
-  const image_path=await this.up(blob,'outfits');const{data,error}=await this.c.from('outfits').insert({user_id:this.uid,name,image_path,layout,signature,is_favorite:fav}).select().single();
-  if(error){await this.c.storage.from('wardrobe').remove([image_path]);if(error.code==='23505')return{dup:true};throw error}
-  await this.c.from('outfit_items').insert(itemIds.map(item_id=>({outfit_id:data.id,item_id,user_id:this.uid})));
-  if(cols.length)await this.c.from('collection_outfits').insert(cols.map(collection_id=>({collection_id,outfit_id:data.id,user_id:this.uid})));return{}},
- async delOutfit(o){await this.c.storage.from('wardrobe').remove([o.path]);await this.c.from('outfits').delete().eq('id',o.id)},
- setFav:(id,v)=>SB.c.from('outfits').update({is_favorite:v}).eq('id',id),
- async cols(){const{data}=await this.c.from('collections').select('*, collection_outfits(outfit_id)').order('created_at');return data.map(c=>({id:c.id,name:c.name,outfitIds:c.collection_outfits.map(x=>x.outfit_id)}))},
- addCol:name=>SB.c.from('collections').insert({name,user_id:SB.uid}),delCol:id=>SB.c.from('collections').delete().eq('id',id),
- async setCol(outfit_id,collection_id,on){on?await this.c.from('collection_outfits').insert({collection_id,outfit_id,user_id:this.uid}):await this.c.from('collection_outfits').delete().match({collection_id,outfit_id})}
+  if(chk(await this.c.from('outfits').select('id').eq('user_id',this.uid).eq('signature',signature),'outfits').length)return{dup:true};
+  const image_path=await this.up(blob,'outfits'),row={user_id:this.uid,name,image_path,layout,signature,is_favorite:fav};if(this.sizeCol)row.image_size=blob.size;
+  const{data,error}=await this.c.from('outfits').insert(row).select().single();
+  if(error){await this.rm(image_path);if(error.code==='23505')return{dup:true};throw error}
+  try{chk(await this.c.from('outfit_items').insert(itemIds.map(item_id=>({outfit_id:data.id,item_id,user_id:this.uid}))),'outfit_items');
+   if(cols.length)chk(await this.c.from('collection_outfits').insert(cols.map(collection_id=>({collection_id,outfit_id:data.id,user_id:this.uid}))),'collection_outfits')}
+  catch(e){await this.c.from('collection_outfits').delete().eq('outfit_id',data.id);await this.c.from('outfit_items').delete().eq('outfit_id',data.id);await this.c.from('outfits').delete().eq('id',data.id);await this.rm(image_path);throw e}return{}},
+ async delOutfit(o){await one(this.c.from('outfits').delete().eq('id',o.id).eq('user_id',this.uid),'ลบชุด');if(o.path)await this.rm(o.path)},
+ async setFav(id,v){await one(this.c.from('outfits').update({is_favorite:v}).eq('id',id).eq('user_id',this.uid),'รายการโปรด')},
+ async cols(){return chk(await this.c.from('collections').select('*, collection_outfits(outfit_id)').eq('user_id',this.uid).order('created_at'),'collections').map(c=>({id:c.id,name:c.name,outfitIds:(c.collection_outfits||[]).map(x=>x.outfit_id)}))},
+ async addCol(name){chk(await this.c.from('collections').insert({name,user_id:this.uid}),'collections')},
+ async delCol(id){await one(this.c.from('collections').delete().eq('id',id).eq('user_id',this.uid),'collections')},
+ async setCol(outfit_id,collection_id,on){chk(on?await this.c.from('collection_outfits').insert({collection_id,outfit_id,user_id:this.uid}):await this.c.from('collection_outfits').delete().match({collection_id,outfit_id}),'collection_outfits')},
+ async measureSize(u){try{const r=await fetch(u,{method:'HEAD'}),n=+r.headers.get('content-length');if(r.ok&&n>0)return n}catch(e){}const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);return(await r.blob()).size},
+ async saveSize(t,id,path,size){if(!this.sizeCol)return;const{error}=await this.c.from(t).update({image_size:size}).eq('id',id).eq('image_path',path).eq('user_id',this.uid);if(error)console.warn('save size',error)}
 };
 
 /* ── App state & helpers ── */
-let api,user,S={items:[],outfits:[],cols:[],cats:[],view:'wardrobe',cat:'all',exp:new Set(),q:'',tf:'All',pieces:[],sel:null,rep:false,colView:null};
+let api,user,S={items:[],outfits:[],cols:[],cats:[],view:'wardrobe',cat:'all',exp:new Set(),q:'',tf:'All',pieces:[],sel:null,rep:false,colView:null,errs:[],bad:[],warns:[]};
 const item=id=>S.items.find(i=>i.id===id), outfit=id=>S.outfits.find(o=>o.id===id);
 const UNC='ยังไม่ได้จัดหมวดหมู่',bySort=(a,b)=>(a.sort_order||0)-(b.sort_order||0);
 const cat=id=>S.cats.find(c=>c.id===id);
@@ -195,7 +218,25 @@ const inSel=i=>S.cat==='all'||(S.cat==='none'?!cat(i.category_id):kids(S.cat).in
 const catOpts=sel=>`<option value="" ${sel?'':'selected'}>${UNC}</option>`+parents().map(p=>`<optgroup label="${esc(p.name)}"><option value="${p.id}" ${p.id===sel?'selected':''}>${esc(p.name)} (ทั่วไป)</option>${subs(p.id).map(c=>`<option value="${c.id}" ${c.id===sel?'selected':''}>${esc(c.name)}</option>`).join('')}</optgroup>`).join('');
 const measure=it=>new Promise(r=>{const i=new Image();i.onload=()=>{it.ar=i.naturalHeight/i.naturalWidth;r()};i.onerror=()=>{it.ar=1;r()};i.src=it.url});
 const loadImg=u=>new Promise((res,rej)=>{const i=new Image();i.crossOrigin='anonymous';i.onload=()=>res(i);i.onerror=rej;i.src=u});
-async function load(){[S.items,S.outfits,S.cols,S.cats]=await Promise.all([api.items(),api.outfits(),api.cols(),api.cats()]);await Promise.all(S.items.map(measure));if(!S.ei){S.ei=1;S.exp=new Set(parents().map(p=>p.id))}render()}
+const fmt=n=>{if(n==null)return'—';if(n<1024)return n+' B';const u=['KB','MB','GB','TB'];let v=n,i=-1;do{v/=1024;i++}while(v>=1024&&i<3);return v.toFixed(1).replace(/\.0$/,'')+' '+u[i]};
+const szTxt=o=>o.size==null?(bf?'กำลังคำนวณ…':'ไม่ทราบ'):fmt(o.size);
+const BADIMG='<span class="bad">โหลดรูปไม่สำเร็จ</span>',IM=(o,a)=>o.url?`<img src="${o.url}" alt="${esc(a||'')}" onerror="imgBad(this)">`:BADIMG,imgBad=el=>{el.outerHTML=BADIMG};
+function resetState(){Object.assign(S,{items:[],outfits:[],cols:[],cats:[],view:'wardrobe',cat:'all',exp:new Set(),ei:0,q:'',tf:'All',pieces:[],sel:null,rep:false,colView:null,errs:[],bad:[],warns:[]})}
+function drawStor(){const e=$('#stor');if(!e)return;const all=S.items.concat(S.outfits),unk=all.filter(o=>o.size==null).length,part=unk||S.errs.length,tot=all.reduce((a,o)=>a+(o.size||0),0);
+ e.innerHTML=`พื้นที่เก็บรูป: <b>${part?'≥ ':''}${fmt(tot)}</b>`;e.title=`ขนาดรวมของไฟล์รูปเสื้อผ้า ${S.items.length} ไฟล์ และรูปชุด ${S.outfits.length} ไฟล์ที่เว็บนี้เก็บไว้`+(part?' (ยังคำนวณไม่ครบหรือโหลดข้อมูลบางส่วนไม่สำเร็จ)':'');
+ const z=$('#isz'),it=z&&item(z.dataset.id);if(it)z.textContent=szTxt(it)}
+function drawBanner(){const m=$('#main'),l=S.warns.concat(S.errs);if(!m||!l.length)return;m.insertAdjacentHTML('afterbegin',`<div class="err" role="alert"><span class="t"><b>ข้อมูลบางส่วนไม่สมบูรณ์</b></span><button class="b" onclick="retry()">ลองอีกครั้ง</button><ul>${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`)}
+function fatal(e){console.error(e);const m=(e&&e.message)||String(e),h=`<div class="err" role="alert"><span class="t"><b>เกิดข้อผิดพลาด</b><br>${esc(m)}</span><button class="b" onclick="boot()">ลองอีกครั้ง</button>${api===SB?'<button class="g" onclick="logout()">ออกจากระบบ</button>':''}</div>`,mn=$('#main');
+ if(mn)mn.innerHTML=h;else $('#app').innerHTML=`<div class="auth"><h1 style="font-size:26px">ตู้เสื้อผ้าของฉัน</h1><div style="margin-top:22px">${h}</div></div>`}
+async function retry(){const mn=$('#main');if(mn)mn.innerHTML='<div class="ld">กำลังโหลด…</div>';try{if(api===SB){const u=await api.init();if(!u)return authScreen();S.warns=u.warn||[]}await load()}catch(e){fatal(e)}}
+let bf=false;
+async function backfill(){if(api!==SB||bf)return;const todo=[...S.items.map(o=>['items',o]),...S.outfits.map(o=>['outfits',o])].filter(([,o])=>o.size==null&&o.url);if(!todo.length)return;bf=true;let ok=0;
+ try{for(let i=0;i<todo.length;i+=4)await Promise.all(todo.slice(i,i+4).map(async([t,o])=>{try{const n=await SB.measureSize(o.url),cur=(t==='items'?item:outfit)(o.id);if(!cur||cur.path!==o.path)return;cur.size=n;ok++;await SB.saveSize(t,o.id,o.path,n)}catch(e){console.warn('size',e)}}))}finally{bf=false}
+ drawStor();if(ok&&S.items.concat(S.outfits).some(o=>o.size==null&&o.url))backfill()}
+async function load(){S.bad=[];S.errs=[];const k=['items','outfits','cols','cats'],lb={items:'เสื้อผ้า',outfits:'ชุดที่บันทึก',cols:'คอลเลกชัน',cats:'หมวดหมู่'};
+ (await Promise.allSettled(k.map(x=>api[x]()))).forEach((r,i)=>{if(r.status==='fulfilled')S[k[i]]=r.value;else{console.error(r.reason);S.errs.push(`โหลด${lb[k[i]]}ไม่สำเร็จ: ${(r.reason&&r.reason.message)||r.reason}`)}});
+ if(S.bad.length)S.errs.push(`สร้างลิงก์รูปภาพไม่สำเร็จ ${S.bad.length} รายการ (ตรวจสอบนโยบาย Storage)`);
+ await Promise.all(S.items.map(i=>i.url?measure(i):(i.ar=1)));if(!S.ei&&S.cats.length){S.ei=1;S.exp=new Set(parents().map(p=>p.id))}render();backfill()}
 
 /* ── Image processing: downscale + optional background removal ── */
 async function proc(file,rm){const im=await createImageBitmap(file),k=Math.min(1,1600/Math.max(im.width,im.height)),w=Math.round(im.width*k),h=Math.round(im.height*k);
@@ -213,7 +254,7 @@ function modal(h,wide){closeM();const m=document.createElement('div');m.classNam
 
 /* ── Shell & auth ── */
 function shell(){const N=[['wardrobe','ตู้เสื้อผ้า'],['studio','จัดชุด'],['collections','คอลเลกชัน'],['favorites','รายการโปรด']],nb=N.map(([v,l])=>`<button data-v="${v}" onclick="go('${v}')">${l}</button>`).join('');
- $('#app').innerHTML=`<div class="app"><aside id="sb"><div class="brand">ตู้เสื้อผ้าของฉัน</div><nav class="sn">${nb}</nav><div id="tree"></div><div class="who"><span>${esc(user.email)}</span>${api===SB?'<button class="g" onclick="logout()">ออกจากระบบ</button>':'<button class="g" onclick="demo=false;boot()">ตั้งค่าล็อกอิน</button>'}</div></aside><div class="col"><div class="top"><button class="ham" aria-label="เมนู" onclick="toggleSb()">☰</button><span class="brand">ตู้เสื้อผ้าของฉัน</span></div><main id="main"></main></div></div><nav id="bn">${nb}</nav><div id="scrim" onclick="toggleSb()"></div>`}
+ $('#app').innerHTML=`<div class="app"><aside id="sb"><div class="brand">ตู้เสื้อผ้าของฉัน</div><nav class="sn">${nb}</nav><div id="tree"></div><div class="who"><span>${esc(user.email)}</span>${api===SB?'<button class="g" onclick="logout()">ออกจากระบบ</button>':'<button class="g" onclick="demo=false;boot()">ตั้งค่าล็อกอิน</button>'}</div></aside><div class="col"><div class="top"><button class="ham" aria-label="เมนู" onclick="toggleSb()">☰</button><span class="brand">ตู้เสื้อผ้าของฉัน</span></div><main id="main"></main></div></div><nav id="bn">${nb}</nav><div id="scrim" onclick="toggleSb()"></div><div id="stor" role="status"></div>`}
 const toggleSb=()=>{$('#sb').classList.toggle('open');$('#scrim').classList.toggle('on')},closeSb=()=>{const a=$('#sb');if(a){a.classList.remove('open');$('#scrim').classList.remove('on')}};
 const thErr=m=>({'Invalid login credentials':'อีเมลหรือรหัสผ่านไม่ถูกต้อง','Email not confirmed':'ยังไม่ได้ยืนยันอีเมล กรุณาเช็กกล่องจดหมาย','User already registered':'อีเมลนี้สมัครไว้แล้ว'}[m]||m);
 function authScreen(msg){$('#app').innerHTML=`<div class="auth"><h1 style="font-size:26px">ตู้เสื้อผ้าของฉัน</h1><p class="mut">เข้าสู่ระบบเพื่อเปิดตู้เสื้อผ้าของคุณ</p><div class="f"><label>อีเมล<input id="ae" type="email" autocomplete="email"></label><label>รหัสผ่าน<input id="ap" type="password" minlength="6" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth(false)"></label><p id="am" class="mut" style="margin:0">${msg||''}</p><button class="b" onclick="doAuth(false)">เข้าสู่ระบบ</button><button class="g" onclick="doAuth(true)">สร้างบัญชีใหม่</button><button class="lk" onclick="doReset()">ลืมรหัสผ่าน?</button><button class="lk" onclick="resetCfg()">เปลี่ยนโปรเจกต์ Supabase</button></div></div>`}
@@ -227,16 +268,17 @@ function recoverScreen(){$('#app').innerHTML=`<div class="auth"><h1 style="font-
 async function doNewPw(){const v=$('#np').value;if(v.length<6)return($('#am').textContent='รหัสผ่านอย่างน้อย 6 ตัวอักษร');const{error}=await SB.c.auth.updateUser({password:v});if(error)return($('#am').textContent=thErr(error.message));history.replaceState(null,'',location.pathname);boot()}
 async function doAuth(up){const e=$('#ae').value.trim(),p=$('#ap').value;if(!e||p.length<6)return($('#am').textContent='กรุณากรอกอีเมลและรหัสผ่านอย่างน้อย 6 ตัวอักษร');
  try{if(up){const ok=await SB.signUp(e,p);if(!ok)return($('#am').textContent='สร้างบัญชีแล้ว กรุณายืนยันอีเมล จากนั้นเข้าสู่ระบบ')}else await SB.signIn(e,p);boot()}catch(x){$('#am').textContent=thErr(x.message)}}
-async function logout(){await SB.signOut();boot()}
+async function logout(){try{const{error}=await SB.signOut();if(error)throw error}catch(e){return toast('ออกจากระบบไม่สำเร็จ: '+e.message)}resetState();boot()}
 async function boot(){const rec=/type=recovery/.test(location.hash),cloud=SUPABASE_URL&&SUPABASE_ANON_KEY&&window.supabase;
- if(!cloud&&!demo)return setupScreen();api=cloud?SB:Local;user=await api.init();if(!user)return authScreen();if(rec&&api===SB)return recoverScreen();shell();await load()}
+ if(!cloud&&!demo)return setupScreen();api=cloud?SB:Local;
+ try{user=await api.init();if(!user){resetState();return authScreen()}if(rec&&api===SB)return recoverScreen();resetState();S.warns=user.warn||[];shell();$('#main').innerHTML='<div class="ld">กำลังโหลด…</div>';await load()}catch(e){fatal(e)}}
 function go(v){S.view=v;S.colView=null;closeSb();render();scrollTo(0,0)}
 function selCat(id){S.cat=id;S.view='wardrobe';S.q='';closeSb();render();scrollTo(0,0)}
 const togExp=id=>{S.exp.has(id)?S.exp.delete(id):S.exp.add(id);drawTree()},expAll=()=>{S.exp.size?S.exp.clear():parents().forEach(p=>S.exp.add(p.id));drawTree()};
 function drawTree(){const t=$('#tree');if(!t)return;const un=S.items.filter(i=>!cat(i.category_id)).length,
  b=(id,l,n,c)=>`<button class="ti ${c||''} ${S.cat===id&&S.view==='wardrobe'?'on':''}" onclick="selCat('${id}')"><span>${l}</span><em>${n}</em></button>`;
  t.innerHTML=`<div class="th"><span>หมวดหมู่</span><button class="lk" onclick="expAll()">${S.exp.size?'ย่อทั้งหมด':'ขยายทั้งหมด'}</button></div>`+b('all','ทั้งหมด',S.items.length)+parents().map(p=>{const ss=subs(p.id),o=S.exp.has(p.id);return`<div class="tp"><div class="tr2">${ss.length?`<button class="car" aria-label="ขยายหรือย่อ" onclick="togExp('${p.id}')">${o?'▾':'▸'}</button>`:'<span class="car"></span>'}${b(p.id,esc(p.name),count(kids(p.id)))}</div>${o?ss.map(c=>b(c.id,esc(c.name),count([c.id]),'sub')).join(''):''}</div>`}).join('')+(un?b('none',UNC,un):'')+`<button class="g" style="margin-top:14px;width:100%" onclick="manageCats()">จัดการหมวดหมู่</button>`}
-function render(){document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));drawTree();({wardrobe:vWardrobe,studio:vStudio,collections:vCollections,favorites:vFavorites})[S.view]()}
+function render(){document.querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===S.view));drawTree();({wardrobe:vWardrobe,studio:vStudio,collections:vCollections,favorites:vFavorites})[S.view]();drawBanner();drawStor()}
 
 /* ── Wardrobe ── */
 function vWardrobe(){if(S.cat!=='all'&&S.cat!=='none'&&!cat(S.cat))S.cat='all';const s=S.cat,c=cat(s),p=c&&(c.parent_id?cat(c.parent_id):c),un=S.items.some(i=>!cat(i.category_id)),
@@ -245,29 +287,29 @@ function vWardrobe(){if(S.cat!=='all'&&S.cat!=='none'&&!cat(S.cat))S.cat='all';c
  <div class="chips t1">${row.map(([id,n])=>`<button class="chip ${id===s||(p&&p.id===id)?'on':''}" onclick="selCat('${id}')">${esc(n)}</button>`).join('')}</div>
  ${p&&subs(p.id).length?`<div class="chips t2"><button class="chip ${s===p.id?'on':''}" onclick="selCat('${p.id}')">ทั้งหมดใน${esc(p.name)}</button>${subs(p.id).map(x=>`<button class="chip ${s===x.id?'on':''}" onclick="selCat('${x.id}')">${esc(x.name)}</button>`).join('')}</div>`:''}<div id="grid"></div>`;drawGrid()}
 function drawGrid(){const q=S.q.toLowerCase(),l=S.items.filter(i=>inSel(i)&&i.name.toLowerCase().includes(q));
- $('#grid').outerHTML=`<div id="grid" class="${l.length?'grid':''}">${l.length?l.map(i=>`<div class="card" onclick="openItem('${i.id}')"><div class="ph"><img src="${i.url}" alt="${esc(i.name)}"></div><b>${esc(i.name)}</b><small>${catPath(i)}</small></div>`).join(''):`<div class="empty">${S.items.length?'ไม่พบรายการในหมวดนี้':'ตู้เสื้อผ้ายังว่างอยู่ อัปโหลดรูปเสื้อผ้าของคุณเพื่อเริ่มต้น'}</div>`}</div>`}
+ $('#grid').outerHTML=`<div id="grid" class="${l.length?'grid':''}">${l.length?l.map(i=>`<div class="card" onclick="openItem('${i.id}')"><div class="ph">${IM(i,i.name)}</div><b>${esc(i.name)}</b><small>${catPath(i)}</small></div>`).join(''):`<div class="empty">${S.items.length?'ไม่พบรายการในหมวดนี้':'ตู้เสื้อผ้ายังว่างอยู่ อัปโหลดรูปเสื้อผ้าของคุณเพื่อเริ่มต้น'}</div>`}</div>`}
 let pending=[];
 function pick(inp){pending=[...inp.files].filter(f=>/^image\/(png|jpe?g)$/.test(f.type));inp.value='';if(!pending.length)return toast('กรุณาเลือกรูปภาพ PNG, JPG หรือ JPEG');
  modal(`<h2>เพิ่ม ${pending.length} ชิ้น</h2><div class="f" style="margin-top:16px"><label>หมวดหมู่<select id="uc">${catOpts(defaultCat())}</select></label><label class="ck"><input type="checkbox" id="ur">ลบพื้นหลัง (เหมาะกับพื้นหลังสีเรียบ)</label><button class="b" id="ub" onclick="doUpload()">เพิ่มเข้าตู้เสื้อผ้า</button></div>`)}
-async function doUpload(){const cat=$('#uc').value||null,rm=$('#ur').checked,b=$('#ub');let n=0;
+async function doUpload(){const cat=$('#uc').value||null,rm=$('#ur').checked,b=$('#ub');let n=0,ok=0;
  for(const f of pending){b.disabled=true;b.textContent=`กำลังอัปโหลด ${++n} จาก ${pending.length}…`;
-  try{await api.addItem(await proc(f,rm),f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' '),cat)}catch(e){toast('อัปโหลดไม่สำเร็จ: '+e.message)}}
- closeM();await load();toast('เพิ่มเข้าตู้เสื้อผ้าแล้ว')}
+  try{await api.addItem(await proc(f,rm),f.name.replace(/\.[^.]+$/,'').replace(/[-_]+/g,' '),cat);ok++}catch(e){toast('อัปโหลดไม่สำเร็จ: '+e.message)}}
+ closeM();await load();if(ok)toast(`เพิ่มเข้าตู้เสื้อผ้าแล้ว ${ok} ชิ้น`)}
 
-function oCard(o){return`<div class="card" onclick="openOutfit('${o.id}')"><div class="ph"><img src="${o.url}" alt="${esc(o.name)}"></div><b>${esc(o.name)}</b><button class="hb ${o.fav?'on':''}" aria-label="รายการโปรด" onclick="event.stopPropagation();fav('${o.id}')">♥</button></div>`}
+function oCard(o){return`<div class="card" onclick="openOutfit('${o.id}')"><div class="ph">${IM(o,o.name)}</div><b>${esc(o.name)}</b><button class="hb ${o.fav?'on':''}" aria-label="รายการโปรด" onclick="event.stopPropagation();fav('${o.id}')">♥</button></div>`}
 function openItem(id){const it=item(id),outs=S.outfits.filter(o=>o.itemIds.includes(id)),cnt={},by={};
  outs.forEach(o=>o.itemIds.forEach(x=>{if(x!==id&&item(x))cnt[x]=(cnt[x]||0)+1}));Object.keys(cnt).forEach(x=>(by[(parentOf(item(x))||{name:UNC}).name]??=[]).push(x));
- modal(`<div class="im"><div class="ph"><img src="${it.url}" alt=""></div><div class="f"><label>ชื่อ<input id="in" value="${esc(it.name)}"></label><label>หมวดหมู่<select id="ic">${catOpts(it.category_id)}</select></label><div class="row"><button class="b" onclick="saveItem('${id}')">บันทึกการแก้ไข</button><button class="g" onclick="bgItem('${id}')">ลบพื้นหลัง</button><button class="g d" onclick="delItem('${id}')">ลบ</button></div></div></div>
- <h3>เคยใส่คู่กับ</h3>${Object.keys(by).length?Object.entries(by).map(([g,a])=>`<h4>${esc(g)}</h4><div class="mini">${a.map(x=>`<div onclick="openItem('${x}')" title="${esc(item(x).name)}"><div class="ph"><img src="${item(x).url}" alt=""></div>${cnt[x]>1?`<i>×${cnt[x]}</i>`:''}</div>`).join('')}</div>`).join(''):'<p class="mut">ยังไม่มีชุดที่บันทึกไว้ซึ่งใช้ชิ้นนี้</p>'}
+ modal(`<div class="im"><div class="ph">${IM(it)}</div><div class="f"><label>ชื่อ<input id="in" value="${esc(it.name)}"></label><label>หมวดหมู่<select id="ic">${catOpts(it.category_id)}</select></label><div class="sz">ขนาดไฟล์รูป: <b id="isz" data-id="${id}">${szTxt(it)}</b></div><div class="row"><button class="b" onclick="saveItem('${id}')">บันทึกการแก้ไข</button><button class="g" onclick="bgItem('${id}')">ลบพื้นหลัง</button><button class="g d" onclick="delItem('${id}')">ลบ</button></div></div></div>
+ <h3>เคยใส่คู่กับ</h3>${Object.keys(by).length?Object.entries(by).map(([g,a])=>`<h4>${esc(g)}</h4><div class="mini">${a.map(x=>`<div onclick="openItem('${x}')" title="${esc(item(x).name)}"><div class="ph">${IM(item(x))}</div>${cnt[x]>1?`<i>×${cnt[x]}</i>`:''}</div>`).join('')}</div>`).join(''):'<p class="mut">ยังไม่มีชุดที่บันทึกไว้ซึ่งใช้ชิ้นนี้</p>'}
  <h3>ชุดที่บันทึกไว้ (${outs.length})</h3>${outs.length?`<div class="og">${outs.map(oCard).join('')}</div>`:'<p class="mut">จัดชุดในหน้า "จัดชุด" แล้วบันทึก ชุดจะแสดงที่นี่</p>'}`,true)}
 async function saveItem(id){await api.updItem(id,{name:$('#in').value.trim()||'ไม่มีชื่อ',category_id:$('#ic').value||null});closeM();await load();toast('อัปเดตรายการแล้ว')}
-async function bgItem(id){const it=item(id);toast('กำลังลบพื้นหลัง…');try{const b=await(await fetch(it.url)).blob(),out=await proc(b,true);await api.updItem(id,{},out,it);await load();openItem(id);toast('ลบพื้นหลังแล้ว')}catch(e){toast('ลบพื้นหลังไม่สำเร็จ: '+e.message)}}
+async function bgItem(id){const it=item(id);toast('กำลังลบพื้นหลัง…');try{const b=await(await fetch(it.url)).blob(),out=await proc(b,true);await api.updItem(id,{},out,it);await load();if(item(id))openItem(id);toast('ลบพื้นหลังแล้ว')}catch(e){toast('ลบพื้นหลังไม่สำเร็จ: '+e.message)}}
 async function delItem(id){if(!confirm('ลบรายการนี้? รูปชุดที่บันทึกไว้จะยังอยู่ แต่ชิ้นนี้จะหายจากประวัติการแมตช์'))return;await api.delItem(item(id));S.pieces=S.pieces.filter(p=>p.itemId!==id);closeM();await load();toast('ลบรายการแล้ว')}
 
 /* ── Mix & Match Studio ── */
 function vStudio(){const l=S.items.filter(i=>S.tf==='All'||(parentOf(i)||{}).id===S.tf);
  $('#main').innerHTML=`<div class="studio"><div><div class="bar"><button class="g" onclick="mv(1)">นำขึ้นหน้า</button><button class="g" onclick="mv(-1)">ส่งไปหลัง</button><button class="g" onclick="rep()">เปลี่ยนชิ้น</button><button class="g" onclick="rmPiece()">นำออก</button><button class="g" onclick="S.pieces=[];S.sel=null;drawPieces()">ล้างทั้งหมด</button><div class="sp"></div><button class="g" onclick="dl()">ดาวน์โหลดรูป</button><button class="b" onclick="saveDlg()">บันทึกชุด</button></div><div id="cv" class="cv"></div></div>
- <aside class="tray"><select onchange="S.tf=this.value;vStudio()">${[{id:'All',name:'ทั้งหมด'},...parents()].map(x=>`<option value="${x.id}" ${S.tf===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><div class="tg">${l.map(i=>`<div class="ph" title="${esc(i.name)}" onclick="addPiece('${i.id}')"><img src="${i.url}" alt="${esc(i.name)}"></div>`).join('')}</div>${l.length?'':'<p class="mut">ไปอัปโหลดเสื้อผ้าที่หน้าตู้เสื้อผ้าก่อน</p>'}</aside></div>`;
+ <aside class="tray"><select onchange="S.tf=this.value;vStudio()">${[{id:'All',name:'ทั้งหมด'},...parents()].map(x=>`<option value="${x.id}" ${S.tf===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select><div class="tg">${l.map(i=>`<div class="ph" title="${esc(i.name)}" onclick="addPiece('${i.id}')">${IM(i,i.name)}</div>`).join('')}</div>${l.length?'':'<p class="mut">ไปอัปโหลดเสื้อผ้าที่หน้าตู้เสื้อผ้าก่อน</p>'}</aside></div>`;
  const cv=$('#cv');cv.onpointerdown=e=>{const el=e.target.closest('.pi');if(!el){S.sel=null;cv.querySelectorAll('.pi').forEach(x=>x.classList.remove('on'));return}
   const p=S.pieces.find(x=>x.id===el.dataset.id),rz=e.target.classList.contains('rz'),r=cv.getBoundingClientRect(),sx=e.clientX,sy=e.clientY,o={...p};
   S.sel=p.id;cv.querySelectorAll('.pi').forEach(x=>x.classList.toggle('on',x===el));el.setPointerCapture(e.pointerId);
@@ -277,7 +319,7 @@ function vStudio(){const l=S.items.filter(i=>S.tf==='All'||(parentOf(i)||{}).id=
  cv.onwheel=e=>{const el=e.target.closest('.pi');if(!el)return;e.preventDefault();const p=S.pieces.find(x=>x.id===el.dataset.id);p.w=Math.min(1.2,Math.max(.08,p.w*(e.deltaY<0?1.06:.94)));el.style.width=p.w*100+'%'};
  drawPieces()}
 function drawPieces(){$('#cv').innerHTML=S.pieces.map((p,i)=>{const it=item(p.itemId);return it?`<div class="pi ${p.id===S.sel?'on':''}" data-id="${p.id}" style="left:${p.x*100}%;top:${p.y*100}%;width:${p.w*100}%;z-index:${i+1}"><img src="${it.url}" alt="${esc(it.name)}" draggable="false"><i class="rz"></i></div>`:''}).join('')+(S.pieces.length?'':'<div class="hint">เลือกเสื้อผ้าจากรายการเพื่อวางที่นี่<br>ลากเพื่อเคลื่อนย้าย ดึงจุดมุมเพื่อปรับขนาด</div>')}
-function addPiece(id){const it=item(id);if(S.rep&&S.sel){const p=S.pieces.find(x=>x.id===S.sel);p.itemId=id;p.ar=it.ar;S.rep=false;drawPieces();return toast('เปลี่ยนชิ้นแล้ว')}
+function addPiece(id){const it=item(id);if(!it||!it.url)return toast('รูปของชิ้นนี้ยังโหลดไม่ได้ ลองโหลดข้อมูลอีกครั้ง');if(S.rep&&S.sel){const p=S.pieces.find(x=>x.id===S.sel);p.itemId=id;p.ar=it.ar;S.rep=false;drawPieces();return toast('เปลี่ยนชิ้นแล้ว')}
  const[x,y,w]={tops:[.28,.04,.44],outerwear:[.5,.1,.42],bottoms:[.3,.42,.4],other:[.62,.74,.26]}[(parentOf(it)||{}).slug]||[.35,.35,.3];
  const p={id:uuid(),itemId:id,x,y,w,ar:it.ar};S.pieces.push(p);S.sel=p.id;drawPieces()}
 function mv(d){const i=S.pieces.findIndex(p=>p.id===S.sel),j=i+d;if(i<0)return toast('เลือกชิ้นเสื้อผ้าก่อน');if(j<0||j>=S.pieces.length)return;[S.pieces[i],S.pieces[j]]=[S.pieces[j],S.pieces[i]];drawPieces()}
@@ -287,19 +329,19 @@ async function exportPNG(){const W=1000,H=1250,c=document.createElement('canvas'
  for(const p of S.pieces){const it=item(p.itemId);if(it)g.drawImage(await loadImg(it.url),p.x*W,p.y*H,p.w*W,p.w*W*p.ar)}return new Promise(r=>c.toBlob(r,'image/png'))}
 async function dl(){if(!S.pieces.length)return toast('เพิ่มเสื้อผ้าก่อน');try{const a=document.createElement('a');a.href=URL.createObjectURL(await exportPNG());a.download='outfit.png';a.click()}catch(e){toast('ส่งออกรูปไม่สำเร็จ')}}
 function saveDlg(){const ids=new Set(S.pieces.map(p=>p.itemId));if(ids.size<2)return toast('เพิ่มเสื้อผ้าอย่างน้อย 2 ชิ้นที่ต่างกันเพื่อบันทึกชุด');
- modal(`<h2>บันทึกชุด</h2><div class="f" style="margin-top:16px"><label>ชื่อ<input id="on" value="ชุดที่ ${S.outfits.length+1}"></label><div>${S.cols.map(c=>`<label class="ck"><input type="checkbox" name="sc" value="${c.id}">${esc(c.name)}</label>`).join('')}<label class="ck"><input type="checkbox" id="sf">เพิ่มในรายการโปรด</label></div><button class="b" id="sb" onclick="doSave()">บันทึกชุด</button></div>`)}
-async function doSave(){const b=$('#sb');b.disabled=true;b.textContent='กำลังบันทึก…';try{const itemIds=[...new Set(S.pieces.map(p=>p.itemId))],r=await api.saveOutfit({name:$('#on').value.trim()||'ชุด',blob:await exportPNG(),layout:S.pieces.map(({itemId,x,y,w,ar})=>({itemId,x,y,w,ar})),itemIds,cols:[...document.getElementsByName('sc')].filter(x=>x.checked).map(x=>x.value),fav:$('#sf').checked});
+ modal(`<h2>บันทึกชุด</h2><div class="f" style="margin-top:16px"><label>ชื่อ<input id="on" value="ชุดที่ ${S.outfits.length+1}"></label><div>${S.cols.map(c=>`<label class="ck"><input type="checkbox" name="sc" value="${c.id}">${esc(c.name)}</label>`).join('')}<label class="ck"><input type="checkbox" id="sf">เพิ่มในรายการโปรด</label></div><button class="b" id="sbtn" onclick="doSave()">บันทึกชุด</button></div>`)}
+async function doSave(){const b=$('#sbtn');b.disabled=true;b.textContent='กำลังบันทึก…';try{const itemIds=[...new Set(S.pieces.map(p=>p.itemId))],r=await api.saveOutfit({name:$('#on').value.trim()||'ชุด',blob:await exportPNG(),layout:S.pieces.map(({itemId,x,y,w,ar})=>({itemId,x,y,w,ar})),itemIds,cols:[...document.getElementsByName('sc')].filter(x=>x.checked).map(x=>x.value),fav:$('#sf').checked});
  closeM();if(r.dup)return toast('ชุดนี้ถูกบันทึกไว้แล้ว');await load();toast('บันทึกชุดและเพิ่มในประวัติการแมตช์แล้ว')}catch(e){b.disabled=false;b.textContent='บันทึกชุด';toast('บันทึกไม่สำเร็จ: '+e.message)}}
 
 /* ── Outfits, collections, favorites ── */
-async function fav(id){const o=outfit(id);o.fav=!o.fav;await api.setFav(id,o.fav);render()}
+async function fav(id){const o=outfit(id),v=!o.fav;await api.setFav(id,v);o.fav=v;render()}
 function openOutfit(id){const o=outfit(id);
- modal(`<div class="im"><div class="ph"><img src="${o.url}" alt=""></div><div class="f"><h2>${esc(o.name)}</h2><div class="mini">${o.itemIds.filter(item).map(x=>`<div onclick="openItem('${x}')" title="${esc(item(x).name)}"><div class="ph"><img src="${item(x).url}" alt=""></div></div>`).join('')}</div>
+ modal(`<div class="im"><div class="ph">${IM(o)}</div><div class="f"><h2>${esc(o.name)}</h2><div class="mini">${o.itemIds.filter(item).map(x=>`<div onclick="openItem('${x}')" title="${esc(item(x).name)}"><div class="ph">${IM(item(x))}</div></div>`).join('')}</div>
  <div><h4>คอลเลกชัน</h4>${S.cols.map(c=>`<label class="ck"><input type="checkbox" ${c.outfitIds.includes(id)?'checked':''} onchange="setCol('${id}','${c.id}',this.checked)">${esc(c.name)}</label>`).join('')}</div>
- <div class="row"><button class="g" onclick="fav('${id}');openOutfit('${id}')">${o.fav?'นำออกจากรายการโปรด':'เพิ่มในรายการโปรด'}</button><button class="g" onclick="toStudio('${id}')">เปิดในหน้าจัดชุด</button><button class="g" onclick="dlO('${id}')">ดาวน์โหลด</button><button class="g d" onclick="delO('${id}')">ลบ</button></div></div></div>`,true)}
-async function setCol(oid,cid,on){await api.setCol(oid,cid,on);const c=S.cols.find(c=>c.id===cid),s=new Set(c.outfitIds);on?s.add(oid):s.delete(oid);c.outfitIds=[...s];if(S.view==='collections')render()}
+ <div class="row"><button class="g" onclick="fav('${id}').then(()=>openOutfit('${id}'))">${o.fav?'นำออกจากรายการโปรด':'เพิ่มในรายการโปรด'}</button><button class="g" onclick="toStudio('${id}')">เปิดในหน้าจัดชุด</button><button class="g" onclick="dlO('${id}')">ดาวน์โหลด</button><button class="g d" onclick="delO('${id}')">ลบ</button></div></div></div>`,true)}
+async function setCol(oid,cid,on){try{await api.setCol(oid,cid,on)}catch(e){openOutfit(oid);throw e}const c=S.cols.find(c=>c.id===cid),s=new Set(c.outfitIds);on?s.add(oid):s.delete(oid);c.outfitIds=[...s];if(S.view==='collections')render()}
 function toStudio(id){const o=outfit(id);S.pieces=(o.layout||[]).filter(l=>item(l.itemId)).map(l=>({...l,id:uuid()}));S.sel=null;closeM();go('studio')}
-function dlO(id){const a=document.createElement('a');a.href=outfit(id).url;a.download=outfit(id).name+'.png';a.target='_blank';a.click()}
+async function dlO(id){const o=outfit(id);try{const a=document.createElement('a');a.href=URL.createObjectURL(await(await fetch(o.url)).blob());a.download=o.name+'.png';a.click()}catch(e){toast('ดาวน์โหลดไม่สำเร็จ: '+e.message);if(o.url)window.open(o.url,'_blank')}}
 async function delO(id){if(!confirm('ลบชุดนี้และประวัติการแมตช์ของชุดนี้?'))return;await api.delOutfit(outfit(id));closeM();await load();toast('ลบชุดแล้ว')}
 function vFavorites(){const l=S.outfits.filter(o=>o.fav);$('#main').innerHTML=`<div class="bar"><h2>รายการโปรด</h2></div>${l.length?`<div class="og">${l.map(oCard).join('')}</div>`:'<div class="empty">ยังไม่มีรายการโปรด แตะหัวใจที่ชุดใดก็ได้</div>'}`}
 function vCollections(){const v=S.colView;
@@ -331,6 +373,9 @@ function delCatDlg(id){const c=cat(id),ids=kids(id),n=count(ids),ns=c.parent_id?
 async function doDelCat(id){const ids=kids(id),t=($('#dt')||{}).value||null;
  try{await api.delCat(ids,t);S.items.forEach(i=>{if(ids.includes(i.category_id))i.category_id=t});S.cats=S.cats.filter(c=>!ids.includes(c.id));if(ids.includes(S.cat))S.cat='all';render();manageCats();toast('ลบหมวดหมู่แล้ว เสื้อผ้าถูกย้ายเรียบร้อย')}catch(e){toast('ลบไม่สำเร็จ: '+e.message)}}
 
+let busy=false;const once=f=>async(...a)=>{if(busy)return;busy=true;try{return await f(...a)}catch(e){console.error(e);toast('ทำรายการไม่สำเร็จ: '+(e.message||e))}finally{busy=false}};
+['saveItem','bgItem','delItem','delO','fav','setCol','newCol','delCol','doUpload'].forEach(n=>window[n]=once(window[n]));
+addEventListener('unhandledrejection',e=>{console.error(e.reason);toast('เกิดข้อผิดพลาด: '+((e.reason&&e.reason.message)||e.reason))});
 boot();
 </script>
 </body>
