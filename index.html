@@ -576,20 +576,24 @@ body.st #toast{bottom:calc(var(--sh) + var(--bn) + 60px)}
 }
 @media(min-width:861px){.hdl{display:none}.cv{width:min(86%,62vh);max-height:none;margin:20px auto}}
 .studio>.bar{grid-column:1/-1}
+@media(min-width:861px) and (max-width:1024px),(min-width:1181px){.studio{row-gap:0}.studio>.bar{grid-column:1;grid-row:1}.studio>div:not(.bar){grid-column:1;grid-row:2}.studio>.tray{grid-column:2;grid-row:1/span 2}}
 .studio .bar.tbx{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:8px;margin-bottom:14px}
 .tbx .r{display:flex;flex-wrap:nowrap;gap:8px;min-width:0;align-items:center}
 .tbx .r .b{margin-left:auto}
 .studio .tbs+.cv{margin-top:0}
-@media(min-width:861px){.tbx .r1{gap:10px;row-gap:8px;flex-wrap:wrap}}
+@media(min-width:861px){.tbx .r1{justify-content:space-between;gap:8px;flex-wrap:wrap}}
+@media(min-width:861px) and (max-width:1439px){.studio .bar.tbx .r1 .g{font-size:13px;padding:8px 10px}.tbx .r1{gap:6px}}
 .studio .bar.tbx .g,.studio .bar.tbx .b{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;flex:0 1 auto;white-space:nowrap;padding:8px clamp(10px,1.4vw,16px)}
 .tbx svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .tbx .cn{font-size:12px}
-.studio .tbs{display:flex;justify-content:flex-end;width:100%;margin:0 0 12px}
+.tbx .io .lb{display:none}
+.studio .bar.tbx .io{min-width:48px;padding-inline:10px;flex:0 0 auto}
+.studio .tbs{display:flex;justify-content:flex-end;width:100%;box-sizing:border-box;padding-right:17px;margin:17px 0 4px}
 .studio .tbs .b{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;min-height:42px;padding:8px clamp(10px,1.4vw,16px)}
-@media(max-width:860px){.studio .bar.tbx{margin-bottom:10px}
+@media(max-width:860px){.studio{row-gap:0}.studio .cv{margin-top:8px}.studio .bar.tbx{margin-bottom:10px}
 .studio .bar.tbx .g,.studio .bar.tbx .b{font-size:13px;padding:8px clamp(8px,2.4vw,14px)}
 .tbx .r1 .g:not(.io),.tbx .r2 .g{flex:1 1 auto}
-.tbx .io .lb{display:none}.studio .bar.tbx .io{min-width:44px;padding-inline:10px;flex:0 0 auto}}
+}
 @media(max-width:360px){.studio .bar.tbx .g,.studio .bar.tbx .b{font-size:12px;gap:4px}.tbx svg{width:16px;height:16px}}
 .rabar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;margin-bottom:10px;border-bottom:1px solid var(--line)}
 .rabar .t{flex:1;min-width:180px;font-size:13px;color:var(--mut)}
