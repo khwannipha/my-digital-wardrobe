@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ตู้เสื้อผ้าดิจิทัลของฉัน</title>
+<title>Closette</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@300;400;500&family=Noto+Sans+Thai:wght@300;400;500&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>
@@ -264,7 +264,7 @@ function drawStor(){const e=$('#stor');if(!e)return;const all=S.items.concat(S.o
  const z=$('#isz'),it=z&&item(z.dataset.id);if(it)z.textContent=szTxt(it)}
 function drawBanner(){const m=$('#main'),l=S.warns.concat(S.errs);if(!m||!l.length)return;m.insertAdjacentHTML('afterbegin',`<div class="err" role="alert"><span class="t"><b>ข้อมูลบางส่วนไม่สมบูรณ์</b></span><button class="b" onclick="retry()">ลองอีกครั้ง</button><ul>${l.map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>`)}
 function fatal(e){console.error(e);const m=(e&&e.message)||String(e),h=`<div class="err" role="alert"><span class="t"><b>เกิดข้อผิดพลาด</b><br>${esc(m)}</span><button class="b" onclick="boot()">ลองอีกครั้ง</button>${api===SB?'<button class="g" onclick="logout()">ออกจากระบบ</button>':''}</div>`,mn=$('#main');
- if(mn)mn.innerHTML=h;else $('#app').innerHTML=`<div class="auth"><h1 style="font-size:26px">ตู้เสื้อผ้าของฉัน</h1><div style="margin-top:22px">${h}</div></div>`}
+ if(mn)mn.innerHTML=h;else $('#app').innerHTML=`<div class="auth"><h1 style="font-size:26px">Closette</h1><div style="margin-top:22px">${h}</div></div>`}
 async function retry(){const mn=$('#main');if(mn)mn.innerHTML='<div class="ld">กำลังโหลด…</div>';try{if(api===SB){const u=await api.init();if(!u)return authScreen();S.warns=u.warn||[]}await load()}catch(e){fatal(e)}}
 let bf=false;
 async function backfill(){if(api!==SB||bf)return;const todo=[...S.items.map(o=>['items',o]),...S.outfits.map(o=>['outfits',o])].filter(([,o])=>o.size==null&&o.url);if(!todo.length)return;bf=true;let ok=0;
@@ -292,10 +292,10 @@ function modal(h,wide){closeM();const m=document.createElement('div');m.classNam
 
 /* ── Shell & auth ── */
 function shell(){const N=[['wardrobe','ตู้เสื้อผ้า'],['studio','จัดชุด'],['collections','คอลเลกชัน'],['favorites','รายการโปรด']],nb=N.map(([v,l])=>`<button data-v="${v}" onclick="go('${v}')">${l}</button>`).join('');
- $('#app').innerHTML=`<div class="app"><aside id="sb"><div class="brand">ตู้เสื้อผ้าของฉัน</div><nav class="sn">${nb}</nav><div id="tree"></div><div class="who"><span>${esc(user.email)}</span>${api===SB?'<button class="g" onclick="logout()">ออกจากระบบ</button>':'<button class="g" onclick="demo=false;boot()">ตั้งค่าล็อกอิน</button>'}</div></aside><div class="col"><div class="top"><button class="ham" aria-label="เมนู" onclick="toggleSb()">☰</button><span class="brand">ตู้เสื้อผ้าของฉัน</span></div><main id="main"></main></div></div><nav id="bn">${nb}</nav><div id="scrim" onclick="toggleSb()"></div><div id="stor" role="status"></div>`}
+ $('#app').innerHTML=`<div class="app"><aside id="sb"><div class="brand">Closette</div><nav class="sn">${nb}</nav><div id="tree"></div><div class="who"><span>${esc(user.email)}</span>${api===SB?'<button class="g" onclick="logout()">ออกจากระบบ</button>':'<button class="g" onclick="demo=false;boot()">ตั้งค่าล็อกอิน</button>'}</div></aside><div class="col"><div class="top"><button class="ham" aria-label="เมนู" onclick="toggleSb()">☰</button><span class="brand">Closette</span></div><main id="main"></main></div></div><nav id="bn">${nb}</nav><div id="scrim" onclick="toggleSb()"></div><div id="stor" role="status"></div>`}
 const toggleSb=()=>{$('#sb').classList.toggle('open');$('#scrim').classList.toggle('on')},closeSb=()=>{const a=$('#sb');if(a){a.classList.remove('open');$('#scrim').classList.remove('on')}};
 const thErr=m=>({'Invalid login credentials':'อีเมลหรือรหัสผ่านไม่ถูกต้อง','Email not confirmed':'ยังไม่ได้ยืนยันอีเมล กรุณาเช็กกล่องจดหมาย','User already registered':'อีเมลนี้สมัครไว้แล้ว'}[m]||m);
-function authScreen(msg){$('#app').innerHTML=`<div class="auth"><h1 style="font-size:26px">ตู้เสื้อผ้าของฉัน</h1><p class="mut">เข้าสู่ระบบเพื่อเปิดตู้เสื้อผ้าของคุณ</p><div class="f"><label>อีเมล<input id="ae" type="email" autocomplete="email"></label><label>รหัสผ่าน<input id="ap" type="password" minlength="6" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth(false)"></label><p id="am" class="mut" style="margin:0">${msg||''}</p><button class="b" onclick="doAuth(false)">เข้าสู่ระบบ</button><button class="g" onclick="doAuth(true)">สร้างบัญชีใหม่</button><button class="lk" onclick="doReset()">ลืมรหัสผ่าน?</button><button class="lk" onclick="resetCfg()">เปลี่ยนโปรเจกต์ Supabase</button></div></div>`}
+function authScreen(msg){$('#app').innerHTML=`<div class="auth"><h1 style="font-size:26px">Closette</h1><p class="mut">เข้าสู่ระบบเพื่อเปิดตู้เสื้อผ้าของคุณ</p><div class="f"><label>อีเมล<input id="ae" type="email" autocomplete="email"></label><label>รหัสผ่าน<input id="ap" type="password" minlength="6" autocomplete="current-password" onkeydown="if(event.key==='Enter')doAuth(false)"></label><p id="am" class="mut" style="margin:0">${msg||''}</p><button class="b" onclick="doAuth(false)">เข้าสู่ระบบ</button><button class="g" onclick="doAuth(true)">สร้างบัญชีใหม่</button><button class="lk" onclick="doReset()">ลืมรหัสผ่าน?</button><button class="lk" onclick="resetCfg()">เปลี่ยนโปรเจกต์ Supabase</button></div></div>`}
 function setupScreen(){$('#app').innerHTML=`<div class="auth"><h1 style="font-size:26px">เชื่อมต่อบัญชีผู้ใช้</h1><p class="mut">เพื่อให้มีล็อกอินและเปิดตู้เดียวกันได้ทั้งในคอมและมือถือ ให้สร้างโปรเจกต์ที่ supabase.com รันไฟล์ supabase-schema.sql แล้ววางค่าจาก Project Settings › API ที่นี่</p><div class="f"><label>Project URL<input id="su" placeholder="https://xxxx.supabase.co" autocapitalize="off"></label><label>Anon public key<input id="sk" autocapitalize="off"></label><p id="am" class="mut" style="margin:0">${SUPABASE_URL&&!window.supabase?'โหลดไลบรารี Supabase ไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตแล้วรีเฟรช':''}</p><button class="b" onclick="saveCfg()">บันทึกและไปหน้าเข้าสู่ระบบ</button><button class="g" onclick="demo=true;boot()">ลองใช้โหมดทดลอง (ไม่ล็อกอิน เก็บในเบราว์เซอร์นี้)</button></div></div>`}
 function saveCfg(){const u=$('#su').value.trim().replace(/\/+$/,''),k=$('#sk').value.trim();if(!/^https:\/\/.+/.test(u)||k.length<20)return($('#am').textContent='กรุณากรอก URL (ขึ้นต้นด้วย https://) และ anon key ให้ถูกต้อง');
  try{localStorage.wd_url=u;localStorage.wd_key=k}catch(e){return($('#am').textContent='เบราว์เซอร์นี้บันทึกค่าไม่ได้')}SUPABASE_URL=u;SUPABASE_ANON_KEY=k;boot()}
@@ -516,5 +516,109 @@ let busy=false;const once=f=>async(...a)=>{if(busy)return;busy=true;try{return a
 addEventListener('unhandledrejection',e=>{console.error(e.reason);toast('เกิดข้อผิดพลาด: '+((e.reason&&e.reason.message)||e.reason))});
 boot();
 </script>
+<style>
+:root{--bn:0px;--sh:0px}
+.top .brand{font-size:24px;letter-spacing:.02em;flex:none}
+#hn{display:flex;gap:6px;margin-left:auto}
+.hi{width:38px;height:38px;border-radius:50%;border:1px solid #b9a58c;background:none;color:var(--acc2);display:grid;place-items:center;cursor:pointer;padding:0;flex:none}
+.hi svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.hi.on{background:var(--sand)}
+@media(max-width:380px){.top{gap:8px;padding:10px}#hn{gap:4px}.hi{width:34px;height:34px}.top .brand{font-size:20px}}
+.studio .bar{gap:8px}
+.studio .bar .g{background:#f3ebdc;border:1px solid #c9b69d;color:var(--acc2);padding:8px 16px;min-height:40px;font-size:14px;white-space:nowrap}
+.studio .bar .g.on{background:var(--acc2);color:#fbf7ef}
+.studio .bar .g:disabled{opacity:.4}
+.studio .bar .b{padding:9px 26px;min-height:42px}
+#stor{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 12px;border-color:#c9b69d;color:var(--acc2);font-size:12px}
+#stor svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5}
+.hdl{width:44px;height:5px;border-radius:3px;background:#cdb9a0;margin:2px auto 8px}
+.sh-head{padding-top:6px}
+@media(max-width:860px){
+.studio .bar .sp{display:none}.studio .bar .b{margin-left:auto}
+.tray{position:fixed;left:0;right:0;bottom:var(--bn);z-index:42;max-height:none;overflow:hidden;border-radius:22px 22px 0 0;border-width:1px 0 0;background:#f8f4ea;padding:0 12px 12px;box-shadow:0 -6px 24px rgba(75,61,49,.14);transition:height .25s ease;overscroll-behavior:contain}
+.tray.dr{transition:none}
+.sh-head{touch-action:none;cursor:grab}
+.sh-head select{width:auto;min-width:130px}
+.tg{display:grid;grid-auto-flow:column;grid-template-rows:repeat(var(--rows,2),var(--cell,96px));grid-auto-columns:var(--cell,96px);gap:8px;margin-top:8px;overflow-x:auto;overflow-y:hidden;height:var(--gh);touch-action:pan-x;scroll-snap-type:x proximity;scrollbar-width:none;overscroll-behavior-x:contain}
+.tg::-webkit-scrollbar{display:none}
+.tg .ph{aspect-ratio:auto;width:var(--cell);height:var(--cell);scroll-snap-align:start}
+body.st main{padding-bottom:calc(var(--sh) + var(--bn) + 28px)}
+body.st #stor{bottom:calc(var(--sh) + var(--bn) + 10px)}
+body.st #toast{bottom:calc(var(--sh) + var(--bn) + 60px)}
+}
+@media(min-width:861px){.hdl{display:none}}
+</style>
+<script>
+(()=>{
+const IC=[['wardrobe','ตู้เสื้อผ้า','<rect x="5" y="3" width="14" height="17" rx="1.5"/><path d="M12 3v17M9.5 10v2M14.5 10v2M7 20v1.5M17 20v1.5"/>'],['studio','จัดชุด','<path d="M8 3 3 6l2 4 3-1v11h8V9l3 1 2-4-5-3c-.5 1.5-2 2.5-4 2.5S8.5 4.5 8 3z"/>'],['collections','คอลเลกชัน','<path d="M3 8l9-5 9 5v9l-9 5-9-5zM3 8l9 5 9-5M12 13v9"/>'],['favorites','รายการโปรด','<path d="M12 20s-8-5-8-11a4.5 4.5 0 018-2.7A4.5 4.5 0 0120 9c0 6-8 11-8 11z"/>']];
+const MQ=matchMedia('(max-width:860px)'),SH={rows:2},rs=document.documentElement.style;
+document.title='Closette';
+
+/* header */
+const _shell=window.shell;
+window.shell=function(){_shell();document.querySelectorAll('.brand').forEach(b=>b.textContent='Closette');
+ const top=document.querySelector('.top');
+ if(top)top.insertAdjacentHTML('beforeend','<nav id="hn" aria-label="เมนูหลัก">'+IC.map(([v,l,p])=>`<button class="hi" data-v="${v}" aria-label="${l}" title="${l}" onclick="go('${v}')"><svg viewBox="0 0 24 24">${p}</svg></button>`).join('')+'</nav>');
+ const st=$('#stor');if(st){st.setAttribute('role','button');st.tabIndex=0;st.onclick=openStor;st.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openStor()}}}};
+const _auth=window.authScreen;window.authScreen=m=>{_auth(m);const h=$('.auth h1');if(h)h.textContent='Closette'};
+
+/* undo (history of canvas pieces) */
+const H=[],cur=()=>JSON.stringify(S.pieces);
+function undoUI(){const b=$('#ubb');if(b)b.disabled=!H.some(x=>x!==cur())}
+function snap(){if(S.view!=='studio')return;const c=cur();if(H[H.length-1]!==c){H.push(c);if(H.length>40)H.shift()}undoUI()}
+window.undo=function(){const c=cur();while(H.length&&H[H.length-1]===c)H.pop();if(!H.length)return toast('ไม่มีรายการให้เลิกทำ');S.pieces=JSON.parse(H.pop());S.ms=new Set();S.sel=null;drawPieces();undoUI()};
+document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('#cv,.tg .ph,.studio .bar button:not(#ubb)'))snap()},true);
+document.addEventListener('pointerup',()=>setTimeout(undoUI,0),true);
+addEventListener('keydown',e=>{if(!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName||''))snap()},true);
+addEventListener('keyup',()=>setTimeout(undoUI,0));
+
+/* bottom sheet */
+function geo(){const t=$('.tray');if(!t)return null;
+ if(!MQ.matches){['height','--rows','--cell','--gh'].forEach(p=>t.style.removeProperty(p));rs.setProperty('--sh','0px');return null}
+ const bn=$('#bn'),b=bn&&getComputedStyle(bn).display!=='none'?bn.offsetHeight:0;rs.setProperty('--bn',b+'px');
+ const W=t.clientWidth-24,n=Math.max(3,Math.min(8,Math.round(W/110))),cell=Math.floor((W-(n-1)*8)/(n+.35)),ch=t.querySelector('.sh-head').offsetHeight+8+12,
+ max=Math.max(2,Math.min(5,Math.floor((innerHeight*.6-b-ch+8)/(cell+8))));
+ return{t,cell,ch,max,rh:r=>r*cell+(r-1)*8}}
+function setRows(r){const G=geo();if(!G)return;r=Math.max(2,Math.min(G.max,r));SH.rows=r;const gh=G.rh(r);
+ G.t.style.setProperty('--cell',G.cell+'px');G.t.style.setProperty('--rows',r);G.t.style.setProperty('--gh',gh+'px');G.t.style.height=(G.ch+gh)+'px';rs.setProperty('--sh',(G.ch+gh)+'px')}
+function drag(t){let D=null;
+ t.addEventListener('pointerdown',e=>{if(!MQ.matches||!e.isPrimary||e.target.closest('button,select'))return;
+  D={y:e.clientY,x:e.clientX,id:e.pointerId,h:t.offsetHeight,r:SH.rows,v:!!e.target.closest('.sh-head'),dy:0};
+  if(D.v){try{t.setPointerCapture(e.pointerId)}catch(_){}t.classList.add('dr')}});
+ t.addEventListener('pointermove',e=>{if(!D||e.pointerId!==D.id)return;const dy=e.clientY-D.y;
+  if(!D.v){if(Math.abs(dy)>8&&Math.abs(dy)>Math.abs(e.clientX-D.x)){D.v=true;try{t.setPointerCapture(e.pointerId)}catch(_){}t.classList.add('dr')}else return}
+  const G=geo();if(!G)return;const h=Math.max(G.ch+G.rh(2),Math.min(G.ch+G.rh(G.max),D.h-dy)),gh=h-G.ch;
+  t.style.height=h+'px';t.style.setProperty('--gh',gh+'px');t.style.setProperty('--rows',Math.min(5,Math.ceil((gh+8)/(G.cell+8))));rs.setProperty('--sh',h+'px');D.dy=dy;e.preventDefault()});
+ const up=e=>{if(!D||e.pointerId!==D.id)return;const d=D;D=null;if(!d.v)return;t.classList.remove('dr');const G=geo();if(!G)return;
+  let r=Math.round((t.offsetHeight-G.ch+8)/(G.cell+8));if(r===d.r&&Math.abs(d.dy)>30)r+=d.dy<0?1:-1;setRows(r)};
+ t.addEventListener('pointerup',up);t.addEventListener('pointercancel',up)}
+const _vS=window.vStudio;
+window.vStudio=function(){_vS();const t=$('.tray');if(!t)return;
+ const h=document.createElement('div');h.className='sh-head';h.innerHTML='<div class="hdl" role="separator" aria-label="ลากเพื่อขยายหรือย่อรายการ"></div>';
+ const s=t.querySelector('select');if(s)h.appendChild(s);t.prepend(h);
+ const b=$('#rmb');if(b)b.insertAdjacentHTML('afterend','<button class="g" id="ubb" onclick="undo()">เลิกทำ</button>');
+ drag(t);setRows(SH.rows);undoUI()};
+const _rd=window.render;
+window.render=function(){_rd();document.body.classList.toggle('st',S.view==='studio');if(S.view!=='studio')rs.setProperty('--sh','0px')};
+const rz=()=>{if($('.tray'))setRows(SH.rows)};addEventListener('resize',rz);MQ.addEventListener('change',rz);
+
+/* storage indicator + panel */
+window.drawStor=function(){const e=$('#stor');if(!e)return;
+ e.innerHTML='<svg viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg><span>พื้นที่จัดเก็บ</span>';e.title='ดูพื้นที่จัดเก็บที่ใช้';
+ const z=$('#isz'),it=z&&item(z.dataset.id);if(it)z.textContent=szTxt(it)};
+async function openStor(){
+ modal('<h2>พื้นที่จัดเก็บ</h2><div id="sg" style="margin-top:14px"><p class="mut">กำลังคำนวณ…</p></div>');
+ let img=null,db=null;
+ if(api===SB){try{const r=await SB.c.rpc('closette_storage_usage');if(r.error)throw r.error;img=+r.data.image_bytes;db=+r.data.db_bytes}catch(e){console.warn('storage rpc',e)}}
+ if(img==null){const a=S.items.concat(S.outfits);if(!a.some(o=>o.size==null))img=a.reduce((s,o)=>s+o.size,0)}
+ const g=$('#sg');if(!g)return;
+ const row=(l,v,x)=>`<div class="mr" style="justify-content:space-between;background:none;${x||''}"><span>${l}</span><b style="flex:none;min-width:0">${v==null?'ไม่พร้อมใช้งาน':fmt(v)}</b></div>`;
+ const tot=img==null&&db==null?null:(img||0)+(db||0);
+ g.innerHTML=row('พื้นที่เก็บรูป',img)+row('พื้นที่ฐานข้อมูล',db)+row('รวมทั้งหมด',tot,'border-top:1px solid var(--line);margin-top:8px;border-radius:0')
+  +(db==null||img==null?'<p class="mut" style="font-size:12px;margin:10px 0 0">'+(db==null?'ขนาดฐานข้อมูลดึงไม่ได้ (ต้องเชื่อม Supabase และรัน storage-usage.sql) ':'')+'ยอดรวมไม่รวมค่าที่ไม่พร้อมใช้งาน</p>':'')}
+window.openStor=openStor;
+})();
+</script>
+
 </body>
 </html>
