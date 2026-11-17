@@ -874,11 +874,30 @@ window.vStudio=function(){oldStudio();const cv=$('#cv'),bar=$('.studio .bar');if
   if(el){const p=S.pieces.find(q=>q.id===el.dataset.id);if(!p)return;if(add(e)){if(p.locked)return;S.ms.has(p.id)?S.ms.delete(p.id):S.ms.add(p.id);drawPieces();return}
    if(!S.ms.has(p.id)){S.ms=new Set([p.id]);S.sel=p.id}if(p.locked){drawPieces();return}const active=[...S.ms].map(id=>S.pieces.find(q=>q.id===id)).filter(q=>q&&!q.locked);if(!active.length)return;remember();drag={type:e.target.classList.contains('rz')&&active.length===1?'resize':'move',x:e.clientX,y:e.clientY,r,orig:active.map(q=>({...q})),pid:e.pointerId};cv.setPointerCapture(e.pointerId);drawPieces();e.preventDefault();return}
   const base=add(e)?new Set(S.ms):new Set();if(!add(e)){S.ms.clear();drawPieces()}drag={type:'marquee',x:e.clientX,y:e.clientY,r,base,pid:e.pointerId};cv.setPointerCapture(e.pointerId);e.preventDefault()};
- cv.onpointermove=e=>{if(!drag||e.pointerId!==drag.pid)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y,fx=dx/drag.r.width,fy=dy/drag.r.height;if(drag.type==='marquee'){let q=cv.querySelector('.mq');if(!q){q=document.createElement('div');q.className='mq';cv.appendChild(q)}const x=Math.min(drag.x,e.clientX),y=Math.min(drag.y,e.clientY),xx=Math.max(drag.x,e.clientX),yy=Math.max(drag.y,e.clientY);Object.assign(q.style,{left:x-drag.r.left+'px',top:y-drag.r.top+'px',width:xx-x+'px',height:yy-y+'px'});const n=new Set(drag.base);cv.querySelectorAll('.pi').forEach(node=>{const b=node.getBoundingClientRect();if(b.right>=x&&b.left<=xx&&b.bottom>=y&&b.top<=yy)n.add(node.dataset.id)});S.ms=n;drawPieces();return}
+ cv.onpointermove=e=>{if(!drag||e.pointerId!==drag.pid)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y,fx=dx/drag.r.width,fy=dy/drag.r.height;if(drag.type==='marquee'){let q=cv.querySelector('.mq');if(!q){q=document.createElement('div');q.className='mq';cv.appendChild(q)}const x=Math.min(drag.x,e.clientX),y=Math.min(drag.y,e.clientY),xx=Math.max(drag.x,e.clientX),yy=Math.max(drag.y,e.clientY);Object.assign(q.style,{left:x-drag.r.left+'px',top:y-drag.r.top+'px',width:xx-x+'px',height:yy-y+'px'});const n=new Set(drag.base);cv.querySelectorAll('.pi').forEach(node=>{const b=node.getBoundingClientRect();if(b.right>=x&&b.left<=xx&&b.bottom>=y&&b.top<=yy)n.add(node.dataset.id)});S.ms=n;drawPieces();cv.appendChild(q);return}
   if(drag.type==='group-resize'){const os=drag.orig,xs=os.map(p=>p.x),ys=os.map(p=>p.y),rs=os.map(p=>p.x+p.w),bs=os.map(p=>p.y+p.w*(p.ar||1)),l=Math.min(...xs),t=Math.min(...ys),rr=Math.max(...rs),bb=Math.max(...bs),w=rr-l,h=bb-t;let sx=1,sy=1;if(drag.handle.includes('e'))sx=Math.max(.1,(w+fx)/w);if(drag.handle.includes('w'))sx=Math.max(.1,(w-fx)/w);if(drag.handle.includes('s'))sy=Math.max(.1,(h+fy)/h);if(drag.handle.includes('n'))sy=Math.max(.1,(h-fy)/h);const scale=Math.max(.1,Math.min(4,Math.min(sx,sy)));os.forEach(o=>{const p=S.pieces.find(q=>q.id===o.id);if(!p)return;const ax=drag.handle.includes('w')?rr:l,ay=drag.handle.includes('n')?bb:t;p.x=ax+(o.x-ax)*scale+(drag.handle.includes('w')?fx:0);p.y=ay+(o.y-ay)*scale+(drag.handle.includes('n')?fy:0);p.w=Math.max(.04,Math.min(1.2,o.w*scale))});drawPieces();return}
   drag.orig.forEach(o=>{const p=S.pieces.find(q=>q.id===o.id);if(!p)return;if(drag.type==='move'){p.x=o.x+fx;p.y=o.y+fy}else{const nw=Math.max(.06,Math.min(1.2,o.w+Math.max(fx,fy)));p.w=nw}});drawPieces()};
  cv.onpointerup=cv.onpointercancel=e=>{if(!drag||e.pointerId!==drag.pid)return;cv.querySelector('.mq')?.remove();drag=null;historyButtons()};
  cv.onwheel=e=>{const el=e.target.closest('.pi');if(!el)return;const p=S.pieces.find(q=>q.id===el.dataset.id);if(!p||p.locked)return;e.preventDefault();remember();p.w=Math.max(.06,Math.min(1.2,p.w*(e.deltaY<0?1.06:.94)));drawPieces()};
+ if(!cv._pz){cv._pz=1;const tp=new Map();let pz=null;
+  const two=()=>{const a=[...tp.values()];return a.length>=2?[a[0],a[1]]:null};
+  cv.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;tp.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(tp.size!==2||pz)return;const ids=[...S.ms].filter(id=>{const q=S.pieces.find(x=>x.id===id);return q&&!q.locked});if(!ids.length)return;
+   const[a,b]=two(),d=Math.hypot(a.x-b.x,a.y-b.y);if(d<10)return;
+   try{cv.setPointerCapture(e.pointerId)}catch(_){}
+   remember();drag=null;cv.querySelector('.mq')?.remove();
+   const k=cv.clientWidth/cv.clientHeight,orig=ids.map(id=>({...S.pieces.find(q=>q.id===id)}));
+   const cs=orig.map(o=>({id:o.id,w:o.w,ar:o.ar||1,cx:o.x+o.w/2,cy:o.y+o.w*(o.ar||1)*k/2}));
+   const L=Math.min(...orig.map(o=>o.x)),R=Math.max(...orig.map(o=>o.x+o.w)),T=Math.min(...orig.map(o=>o.y)),B=Math.max(...orig.map(o=>o.y+o.w*(o.ar||1)*k));
+   pz={d,k,cs,gx:(L+R)/2,gy:(T+B)/2}});
+  cv.addEventListener('pointermove',e=>{if(!tp.has(e.pointerId))return;tp.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(!pz)return;const t=two();if(!t)return;e.preventDefault();
+   let s=Math.hypot(t[0].x-t[1].x,t[0].y-t[1].y)/pz.d;
+   pz.cs.forEach(c=>{s=Math.min(s,1.2/c.w);s=Math.max(s,.04/c.w)});
+   pz.cs.forEach(c=>{const q=S.pieces.find(x=>x.id===c.id);if(!q)return;const nw=c.w*s,ncx=pz.gx+(c.cx-pz.gx)*s,ncy=pz.gy+(c.cy-pz.gy)*s;q.w=nw;q.x=ncx-nw/2;q.y=ncy-nw*c.ar*pz.k/2});
+   drawPieces()});
+  const up=e=>{tp.delete(e.pointerId);if(tp.size<2)pz=null;historyButtons()};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up)}
  drawPieces();historyButtons()};
 const oldMv=window.mv;window.mv=function(d){const ids=[...S.ms],active=ids.filter(id=>{const p=S.pieces.find(q=>q.id===id);return p&&!p.locked});if(!active.length)return toast('ไม่มีชิ้นที่เลือกซึ่งปลดล็อกอยู่');remember();const a=S.pieces.filter(p=>active.includes(p.id)),b=S.pieces.filter(p=>!active.includes(p.id));S.pieces=d>0?[...b,...a]:[...a,...b];drawPieces()};
 const oldAdd=window.addPiece;window.addPiece=function(id){remember();return oldAdd(id)};
