@@ -598,6 +598,56 @@ body.st #toast{bottom:calc(var(--sh) + var(--bn) + 60px)}
 .rabar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;margin-bottom:10px;border-bottom:1px solid var(--line)}
 .rabar .t{flex:1;min-width:180px;font-size:13px;color:var(--mut)}
 @media(max-width:1024px){.rabar{top:65px}}
+/* ══ Wardrobe page: mobile / iPad polish (desktop >1024px untouched) ══ */
+@media(max-width:1024px){
+/* header: fixed height, even spacing */
+.top{min-height:56px;padding:8px 14px;gap:10px}
+.ham{width:40px;height:40px;flex:none}
+.top .brand{font-size:22px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hn{gap:6px;flex:none}.hi{width:38px;height:38px}
+/* storage: moves into the header so it never covers content */
+#stor,body.st #stor{position:fixed;top:11px;right:14px;bottom:auto;z-index:45;height:34px;padding:0 12px;font-size:12px;line-height:1;box-shadow:none;background:var(--bg)}
+#hn{margin-right:calc(var(--stw,44px) + 8px)}
+/* page toolbar */
+.bar:has(#q){display:grid;grid-template-columns:auto minmax(160px,1fr) auto auto auto;gap:10px;align-items:center;margin-bottom:14px}
+.bar:has(#q)>.sp{display:none}
+.bar:has(#q) h2{font-size:22px;line-height:1.25}
+.bar:has(#q) input#q{width:100%;min-height:42px}
+.bar:has(#q) .g,.bar:has(#q) .b{min-height:42px;padding:8px 18px;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center}
+/* category tabs: one tidy scrolling strip */
+.chips.t1,.chips.t2{display:flex;flex-wrap:nowrap;overflow-x:auto;gap:8px;margin:0 -18px 10px;padding:2px 18px;scrollbar-width:none;scroll-snap-type:x proximity;scroll-padding-inline:18px;overscroll-behavior-x:contain}
+.chips.t1::-webkit-scrollbar,.chips.t2::-webkit-scrollbar{display:none}
+.chips.t1 .chip,.chips.t2 .chip{flex:none;min-height:38px;padding:6px 16px;display:inline-flex;align-items:center;white-space:nowrap;scroll-snap-align:start}
+/* grid */
+.grid,.og{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:16px}
+.card small{display:block;font-size:12px;line-height:1.4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card b{font-size:14px}
+}
+@media(max-width:600px){
+.top{padding:6px 12px;gap:8px}.ham{width:38px;height:38px}.top .brand{font-size:20px}
+.hi{width:34px;height:34px}#hn{gap:4px}
+#stor span{display:none}#stor,body.st #stor{width:34px;height:34px;padding:0;right:12px;top:11px;justify-content:center;border-radius:50%}#stor svg{width:17px;height:17px}
+#hn{margin-right:42px}
+.bar:has(#q){grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
+.bar:has(#q)>div:first-child{grid-column:1;grid-row:1;min-width:0}
+.bar:has(#q)>.b{grid-column:2;grid-row:1;justify-self:end}
+.bar:has(#q)>#q{grid-column:1/-1;grid-row:2}
+.bar:has(#q)>[onclick="manageCats()"]{grid-column:1;grid-row:3}
+.bar:has(#q)>#rab{grid-column:2;grid-row:3}
+.bar:has(#q) .g{padding:8px 10px}
+.chips.t1,.chips.t2{margin-inline:-14px;padding-inline:14px;scroll-padding-inline:14px}
+.grid,.og{grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:12px}
+main{padding:14px 14px calc(88px + env(safe-area-inset-bottom))}
+#bn{padding:4px 4px calc(4px + env(safe-area-inset-bottom));gap:2px}
+#bn button{font-size:12.5px;line-height:1.25;white-space:nowrap;padding:8px 2px;min-height:52px;display:flex;align-items:center;justify-content:center;text-align:center;min-width:0}
+.err{padding:12px 14px;margin-bottom:14px}
+}
+@media(max-width:360px){.top .brand{font-size:18px}.ham{width:34px;height:34px}.hi{width:32px;height:32px}#hn{gap:3px}.top{gap:6px;padding-inline:10px}#bn button{font-size:12px}}
+@media(min-width:601px) and (max-width:1024px){.bar:has(#q)>h2,.bar:has(#q)>div:first-child{min-width:0}.bar:has(#q)>.b{order:0}}
+@media(min-width:601px) and (max-width:1024px){#stor span{display:none}#stor,body.st #stor{width:38px;height:38px;padding:0;justify-content:center;border-radius:50%}#stor svg{width:18px;height:18px}#hn{margin-right:48px}}
+@media(min-width:1025px){main{padding-bottom:64px}}
+@media(min-width:1025px) and (max-width:1180px){.grid,.og{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:18px}}
+
 /* ── Outfit editor responsive polish ── */
 .tbx .io .lb{display:inline}
 .studio .bar.tbx .io{min-width:0;flex:0 1 auto}
@@ -697,6 +747,9 @@ function tbLayout(){const bar=$('.studio .bar.tbx');if(!bar)return;const g=q=>ba
 let _tbr=0;addEventListener('resize',()=>{cancelAnimationFrame(_tbr);_tbr=requestAnimationFrame(()=>{const b=$('.studio .bar.tbx');if(b&&b.clientWidth!==b._w){b._w=b.clientWidth;tbLayout()}})});
 const _su=window.selUI;window.selUI=function(){_su();const r=$('#rmb');if(r&&r.dataset.d){const n=S.ms.size;r.innerHTML=ICO.rm+'<span class="lb">นำออก</span>'+(n>1?'<span class="cn">('+n+')</span>':'')}};
 MQ.addEventListener('change',tbLayout);
+/* wardrobe: keep the active category chip visible in the scrolling tab strip */
+const _vw=window.vWardrobe;window.vWardrobe=function(){_vw.apply(this,arguments);document.querySelectorAll('.chips.t1 .chip.on,.chips.t2 .chip.on').forEach(c=>{const p=c.parentNode;if(p.scrollWidth>p.clientWidth)p.scrollLeft=Math.max(0,c.offsetLeft-(p.clientWidth-c.offsetWidth)/2)})};
+
 
 /* storage indicator + panel */
 window.drawStor=function(){const e=$('#stor');if(!e)return;
