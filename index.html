@@ -598,6 +598,27 @@ body.st #toast{bottom:calc(var(--sh) + var(--bn) + 60px)}
 .rabar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;margin-bottom:10px;border-bottom:1px solid var(--line)}
 .rabar .t{flex:1;min-width:180px;font-size:13px;color:var(--mut)}
 @media(max-width:1024px){.rabar{top:65px}}
+/* ── Outfit editor responsive polish ── */
+.tbx .io .lb{display:inline}
+.studio .bar.tbx .io{min-width:0;flex:0 1 auto}
+.studio .bar.tbx .r1 [onclick="mv(1)"],.studio .bar.tbx .r1 [onclick="mv(-1)"]{min-width:122px}
+.tbx .r.tw{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:stretch}
+.tbx .tw .stk{display:grid;grid-template-columns:1fr;grid-template-rows:1fr 1fr;gap:8px;width:max-content;min-width:112px}
+.tbx .tw .stk .g{width:100%;height:100%;min-height:44px;margin:0}
+.tbx .tw .rst{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:1fr 1fr;gap:8px;min-width:0}
+.tbx .tw .rst>.g{grid-column:span 2;width:100%;min-height:44px;margin:0;padding:6px 8px;white-space:normal;line-height:1.2;text-align:center;overflow-wrap:anywhere}
+.tbx .tw .rst>.g:nth-child(n+4){grid-column:span 3}
+.tbx .tw .rst>.g.io{flex:none}
+@media(max-width:600px){.tbx .io .lb{display:none}.tbx .tw .stk{min-width:100px}.tbx .tw .stk .g{padding:6px 8px;font-size:13px}.tbx .tw .rst>.g{padding:6px 4px;font-size:12px;gap:4px}.tbx .tw{gap:6px}}
+@media(max-width:360px){.tbx .tw .stk{min-width:92px}.tbx .tw .stk .g{font-size:12px;gap:4px;padding:6px 6px}.tbx svg{width:16px;height:16px}}
+@media(min-width:601px) and (max-width:860px){.tbx .r.tw{gap:10px}.tbx .tw .stk,.tbx .tw .rst{gap:10px}.studio .bar.tbx .g,.studio .bar.tbx .b{font-size:14px}.tbx .tw .stk{min-width:124px}}
+@media(min-width:861px) and (max-width:1180px){.tbx .tw .stk{min-width:116px}}
+/* clothing picker: fixed square cells, image never sets the spacing */
+.tg .ph{aspect-ratio:1;padding:4px;box-sizing:border-box;min-width:0}
+.tg .ph img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
+@media(min-width:1025px) and (max-width:1180px){.tg{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}}
+@media(max-width:860px){.tg .ph{aspect-ratio:auto}}
+
 .rearr .card{cursor:grab}
 .card.swapt{outline:2px solid var(--acc2);outline-offset:4px;border-radius:12px}
 </style>
@@ -665,9 +686,15 @@ function tbBuild(){const bar=$('.studio .bar');if(!bar)return;bar.classList.add(
  const r=$('#rmb');if(r){r.dataset.d='1';r.setAttribute('aria-label','นำออก')}tbLayout();selUI()}
 function tbLayout(){const bar=$('.studio .bar.tbx');if(!bar)return;const g=q=>bar.querySelector(q)||document.querySelector('.studio '+q),
  up=g('[onclick="mv(1)"]'),dn=g('[onclick="mv(-1)"]'),rp=g('[onclick="rep()"]'),dp=g('#cpb'),rm=g('#rmb'),cl=g('[onclick^="S.pieces=[]"]'),dl=g('[onclick="dl()"]'),sv=g('[onclick="saveDlg()"]'),
- rows=MQ.matches?[[up,dp,rm,cl],[dn,rp,dl],[sv]]:[[up,dn,rp,dp,rm,cl,dl],[sv]];
- bar.querySelectorAll('.sp').forEach(e=>e.remove());bar.querySelectorAll('.r').forEach(e=>e.remove());document.querySelectorAll('.studio .tbs').forEach(e=>e.remove());
- rows.forEach((a,i)=>{const d=document.createElement('div'),own=!MQ.matches&&a.includes(sv),cv=$('#cv');d.className=own?'tbs':'r r'+(i+1)+(a.includes(sv)?' sv':'');a.filter(Boolean).forEach(b=>d.appendChild(b));if(own&&cv&&cv.parentNode)cv.parentNode.insertBefore(d,cv);else bar.appendChild(d)})}
+ mk=(c,k)=>{const d=document.createElement('div');d.className=c;k.filter(Boolean).forEach(b=>d.appendChild(b));return d},
+ build=cp=>{bar.querySelectorAll('.sp').forEach(e=>e.remove());bar.querySelectorAll('.r').forEach(e=>e.remove());document.querySelectorAll('.studio .tbs').forEach(e=>e.remove());const cv=$('#cv');
+  if(!cp){bar.appendChild(mk('r r1',[up,dn,rp,dp,rm,cl,dl]));const t=mk('tbs',[sv]);if(cv&&cv.parentNode)cv.parentNode.insertBefore(t,cv);else bar.appendChild(t)}
+  else{bar.appendChild(mk('r tw',[mk('stk',[up,dn]),mk('rst',[dp,rm,cl,rp,dl])]));
+   if(MQ.matches)bar.appendChild(mk('r r3 sv',[sv]));else{const t=mk('tbs',[sv]);if(cv&&cv.parentNode)cv.parentNode.insertBefore(t,cv);else bar.appendChild(t)}}
+  bar.dataset.m=cp?'c':'d'};
+ build(MQ.matches);
+ if(!MQ.matches){const r1=bar.querySelector('.r1');if(r1&&up&&r1.offsetHeight>up.offsetHeight*1.5)build(true)}}
+let _tbr=0;addEventListener('resize',()=>{cancelAnimationFrame(_tbr);_tbr=requestAnimationFrame(()=>{const b=$('.studio .bar.tbx');if(b&&b.clientWidth!==b._w){b._w=b.clientWidth;tbLayout()}})});
 const _su=window.selUI;window.selUI=function(){_su();const r=$('#rmb');if(r&&r.dataset.d){const n=S.ms.size;r.innerHTML=ICO.rm+'<span class="lb">นำออก</span>'+(n>1?'<span class="cn">('+n+')</span>':'')}};
 MQ.addEventListener('change',tbLayout);
 
