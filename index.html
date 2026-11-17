@@ -470,7 +470,7 @@ async function exportPNG(){const W=1000,H=1250,c=document.createElement('canvas'
 async function dl(){if(!S.pieces.length)return toast('เพิ่มเสื้อผ้าก่อน');try{const a=document.createElement('a');a.href=URL.createObjectURL(await exportPNG());a.download='outfit.png';a.click()}catch(e){toast('ส่งออกรูปไม่สำเร็จ')}}
 function saveDlg(){const ids=new Set(S.pieces.map(p=>p.itemId));if(ids.size<2)return toast('เพิ่มเสื้อผ้าอย่างน้อย 2 ชิ้นที่ต่างกันเพื่อบันทึกชุด');
  modal(`<h2>บันทึกชุด</h2><div class="f" style="margin-top:16px"><label>ชื่อ<input id="on" value="ชุดที่ ${S.outfits.length+1}"></label><div>${S.cols.map(c=>`<label class="ck"><input type="checkbox" name="sc" value="${c.id}">${esc(c.name)}</label>`).join('')}<label class="ck"><input type="checkbox" id="sf">เพิ่มในรายการโปรด</label></div><button class="b" id="sbtn" onclick="doSave()">บันทึกชุด</button></div>`)}
-async function doSave(){const b=$('#sbtn');b.disabled=true;b.textContent='กำลังบันทึก…';try{const itemIds=[...new Set(S.pieces.map(p=>p.itemId))],r=await api.saveOutfit({name:$('#on').value.trim()||'ชุด',blob:await exportPNG(),layout:S.pieces.map(({itemId,x,y,w,ar})=>({itemId,x,y,w,ar})),itemIds,cols:[...document.getElementsByName('sc')].filter(x=>x.checked).map(x=>x.value),fav:$('#sf').checked});
+async function doSave(){const b=$('#sbtn');b.disabled=true;b.textContent='กำลังบันทึก…';try{const itemIds=[...new Set(S.pieces.map(p=>p.itemId))],r=await api.saveOutfit({name:$('#on').value.trim()||'ชุด',blob:await exportPNG(),layout:S.pieces.map(({itemId,x,y,w,ar,locked})=>({itemId,x,y,w,ar,locked:!!locked})),itemIds,cols:[...document.getElementsByName('sc')].filter(x=>x.checked).map(x=>x.value),fav:$('#sf').checked});
  closeM();if(r.dup)return toast('ชุดนี้ถูกบันทึกไว้แล้ว');await load();toast('บันทึกชุดและเพิ่มในประวัติการแมตช์แล้ว')}catch(e){b.disabled=false;b.textContent='บันทึกชุด';toast('บันทึกไม่สำเร็จ: '+e.message)}}
 
 /* ── Outfits, collections, favorites ── */
@@ -611,11 +611,6 @@ boot();
 .hi svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .hi.on{background:var(--sand)}
 @media(max-width:380px){.top{gap:8px;padding:10px}#hn{gap:4px}.hi{width:34px;height:34px}.top .brand{font-size:20px}}
-.studio .bar{gap:8px}
-.studio .bar .g{background:#f3ebdc;border:1px solid #c9b69d;color:var(--acc2);padding:8px 16px;min-height:40px;font-size:14px;white-space:nowrap}
-.studio .bar .g.on{background:var(--acc2);color:#fbf7ef}
-.studio .bar .g:disabled{opacity:.4}
-.studio .bar .b{padding:9px 26px;min-height:42px}
 #stor{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 12px;border-color:#c9b69d;color:var(--acc2);font-size:12px}
 #stor svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.5}
 .hdl{width:44px;height:5px;border-radius:3px;background:#cdb9a0;margin:2px auto 6px}
@@ -639,24 +634,40 @@ body.st #toast{bottom:calc(var(--sh) + var(--bn) + 60px)}
 @media(min-width:861px){.hdl{display:none}.cv{width:min(86%,62vh);max-height:none;margin:20px auto}}
 .studio>.bar{grid-column:1/-1}
 @media(min-width:861px) and (max-width:1024px),(min-width:1181px){.studio{row-gap:0}.studio>.bar{grid-column:1;grid-row:1}.studio>div:not(.bar){grid-column:1;grid-row:2}.studio>.tray{grid-column:2;grid-row:1/span 2}}
-.studio .bar.tbx{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:8px;margin-bottom:14px}
-.tbx .r{display:flex;flex-wrap:nowrap;gap:8px;min-width:0;align-items:center}
-.tbx .r .b{margin-left:auto}
-.studio .tbs+.cv{margin-top:0}
-@media(min-width:861px){.tbx .r1{justify-content:space-between;gap:8px;flex-wrap:wrap}}
-@media(min-width:861px) and (max-width:1439px){.studio .bar.tbx .r1 .g{font-size:13px;padding:8px 10px}.tbx .r1{gap:6px}}
-.studio .bar.tbx .g,.studio .bar.tbx .b{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;flex:0 1 auto;white-space:nowrap;padding:8px clamp(10px,1.4vw,16px)}
-.tbx svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.tbx .cn{font-size:12px}
-.tbx .io .lb{display:none}
-.studio .bar.tbx .io{min-width:48px;padding-inline:10px;flex:0 0 auto}
-.studio .tbs{display:flex;justify-content:flex-end;width:100%;box-sizing:border-box;padding-right:17px;margin:17px 0 4px}
-.studio .tbs .b{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;min-height:42px;padding:8px clamp(10px,1.4vw,16px)}
-@media(max-width:860px){.studio{row-gap:0}.studio .cv{margin-top:8px}.studio .bar.tbx{margin-bottom:10px}
-.studio .bar.tbx .g,.studio .bar.tbx .b{font-size:13px;padding:8px clamp(8px,2.4vw,14px)}
-.tbx .r1 .g:not(.io),.tbx .r2 .g{flex:1 1 auto}
+/* ── Outfit Builder toolbar: one compact dock  [ undo redo ] [ tools ] [ Save ]  ──
+   Wide: a single row.  Narrow (< 640px of toolbar width): two rows, never more. */
+.studio .bar.tbx{container-type:inline-size;display:block;margin:0 0 14px;padding:0;min-width:0}
+.tb-dock{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"hist tools save";align-items:center;column-gap:12px;padding:6px 8px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.tb-hist{grid-area:hist;display:flex;gap:2px}
+.tb-tools{grid-area:tools;display:flex;align-items:center;justify-content:center;gap:2px;min-width:0}
+.tb-g{display:flex;gap:2px}
+.tb-sep{flex:none;width:1px;height:18px;margin:0 8px;background:var(--line)}
+.tbx svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none;pointer-events:none}
+.studio .bar.tbx .g{position:relative;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;width:36px;height:36px;min-height:0;margin:0;padding:0;border:0;border-radius:10px;background:none;color:var(--acc2);font-size:14px;line-height:1;white-space:nowrap;cursor:pointer;transition:background .15s}
+.studio .bar.tbx .g:hover:not(:disabled){background:var(--sand)}
+.studio .bar.tbx .g:active:not(:disabled){background:#e3d6bf}
+.studio .bar.tbx .g:disabled{opacity:.3;cursor:default}
+.tb-hist .g svg{width:19px;height:19px}
+.studio .bar.tbx .b{grid-area:save;justify-self:end;box-sizing:border-box;height:36px;min-height:0;margin:0;padding:0 22px;border-radius:10px;background:var(--acc2);border:1px solid var(--acc2);color:#fbf7ef;font-size:14px;font-weight:500;line-height:1;white-space:nowrap;transition:background .15s}
+.studio .bar.tbx .b:hover{background:var(--ink);border-color:var(--ink)}
+.studio .bar.tbx .g:focus-visible,.studio .bar.tbx .b:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+/* labels stay available to screen readers + show as a tooltip on hover/focus */
+.tbx .lb{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.tbx .cn{position:absolute;top:1px;right:1px;min-width:15px;height:15px;padding:0 4px;border-radius:8px;background:var(--acc2);color:#fbf7ef;font-size:10px;line-height:15px;text-align:center}
+@media(hover:hover){.tbx [data-tip]:hover::after,.tbx [data-tip]:focus-visible::after{content:attr(data-tip);position:absolute;top:calc(100% + 8px);left:50%;transform:translateX(-50%);padding:4px 9px;border-radius:7px;background:var(--ink);color:#fbf7ef;font-size:12px;line-height:1.5;white-space:nowrap;pointer-events:none;z-index:30;opacity:0;animation:tbtip .15s .35s forwards}}
+@keyframes tbtip{to{opacity:1}}
+/* narrow: row 1 = undo/redo (left) + Save (right); row 2 = tools spread evenly */
+@container (max-width:639px){
+ .tb-dock{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"hist save" "tools tools";row-gap:6px;padding:6px}
+ .tb-tools{justify-content:space-between;padding-top:6px;border-top:1px solid var(--line)}
+ .tb-g{flex:1 1 auto;gap:1px}
+ .tb-sep{margin:0 3px}
+ .studio .bar.tbx .tb-tools .g{flex:1 1 0;width:auto;min-width:0;max-width:52px;height:40px}
+ .studio .bar.tbx .tb-hist .g{width:40px;height:40px}
+ .studio .bar.tbx .b{height:40px;padding:0 20px}
 }
-@media(max-width:360px){.studio .bar.tbx .g,.studio .bar.tbx .b{font-size:12px;gap:4px}.tbx svg{width:16px;height:16px}}
+@container (max-width:639px){.tbx svg{width:20px;height:20px}}
+@container (max-width:340px){.tb-sep{margin:0 1px}.tbx svg{width:18px;height:18px}}
 .rabar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;position:sticky;top:0;z-index:20;background:var(--bg);padding:8px 0;margin-bottom:10px;border-bottom:1px solid var(--line)}
 .rabar .t{flex:1;min-width:180px;font-size:13px;color:var(--mut)}
 @media(max-width:1024px){.rabar{top:65px}}
@@ -712,20 +723,6 @@ main{padding:14px 14px calc(88px + env(safe-area-inset-bottom))}
 @media(min-width:1025px) and (max-width:1180px){.grid,.og{grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:18px}}
 
 /* ── Outfit editor responsive polish ── */
-.tbx .io .lb{display:inline}
-.studio .bar.tbx .io{min-width:0;flex:0 1 auto}
-.studio .bar.tbx .r1 [onclick="mv(1)"],.studio .bar.tbx .r1 [onclick="mv(-1)"]{min-width:122px}
-.tbx .r.tw{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:stretch}
-.tbx .tw .stk{display:grid;grid-template-columns:1fr;grid-template-rows:1fr 1fr;gap:8px;width:max-content;min-width:112px}
-.tbx .tw .stk .g{width:100%;height:100%;min-height:44px;margin:0}
-.tbx .tw .rst{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:1fr 1fr;gap:8px;min-width:0}
-.tbx .tw .rst>.g{grid-column:span 2;width:100%;min-height:44px;margin:0;padding:6px 8px;white-space:normal;line-height:1.2;text-align:center;overflow-wrap:anywhere}
-.tbx .tw .rst>.g:nth-child(n+4){grid-column:span 3}
-.tbx .tw .rst>.g.io{flex:none}
-@media(max-width:600px){.tbx .io .lb{display:none}.tbx .tw .stk{min-width:100px}.tbx .tw .stk .g{padding:6px 8px;font-size:13px}.tbx .tw .rst>.g{padding:6px 4px;font-size:12px;gap:4px}.tbx .tw{gap:6px}}
-@media(max-width:360px){.tbx .tw .stk{min-width:92px}.tbx .tw .stk .g{font-size:12px;gap:4px;padding:6px 6px}.tbx svg{width:16px;height:16px}}
-@media(min-width:601px) and (max-width:860px){.tbx .r.tw{gap:10px}.tbx .tw .stk,.tbx .tw .rst{gap:10px}.studio .bar.tbx .g,.studio .bar.tbx .b{font-size:14px}.tbx .tw .stk{min-width:124px}}
-@media(min-width:861px) and (max-width:1180px){.tbx .tw .stk{min-width:116px}}
 /* clothing picker: fixed square cells, image never sets the spacing */
 .tg .ph{aspect-ratio:1;padding:4px;box-sizing:border-box;min-width:0}
 .tg .ph img{width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}
@@ -762,7 +759,7 @@ const H=[],cur=()=>JSON.stringify(S.pieces);
 function undoUI(){const b=$('#ubb');if(b)b.disabled=!H.some(x=>x!==cur())}
 function snap(){if(S.view!=='studio')return;const c=cur();if(H[H.length-1]!==c){H.push(c);if(H.length>40)H.shift()}undoUI()}
 window.undo=function(){const c=cur();while(H.length&&H[H.length-1]===c)H.pop();if(!H.length)return toast('ไม่มีรายการให้เลิกทำ');S.pieces=JSON.parse(H.pop());S.ms=new Set();S.sel=null;drawPieces();undoUI()};
-document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('#cv,.tg .ph,.studio .bar button:not(#ubb)'))snap()},true);
+document.addEventListener('pointerdown',e=>{if(e.target.closest&&e.target.closest('#cv,.tg .ph,.studio .bar button:not(#ubb):not(#closetteUndo):not(#closetteRedo)'))snap()},true);
 document.addEventListener('pointerup',()=>setTimeout(undoUI,0),true);
 addEventListener('keydown',e=>{if(!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName||''))snap()},true);
 addEventListener('keyup',()=>setTimeout(undoUI,0));
@@ -799,24 +796,30 @@ const rz=()=>{if($('.tray'))setRows(SH.rows)};addEventListener('resize',rz);MQ.a
 
 /* toolbar layout (presentation only: the original buttons are re-arranged, never re-created) */
 const SV=p=>'<svg viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>',
-ICO={up:SV('<path d="M5 15l7-7 7 7"/>'),dn:SV('<path d="M5 9l7 7 7-7"/>'),
- rm:SV('<path d="M7.5 10V8.6c0-2 2-3.4 4.5-3.4s4.5 1.4 4.5 3.4V10M9.8 7l2.2 1.6L14.2 7"/><path d="M3 10h18M4.4 10l1.4 9.2a1.6 1.6 0 001.6 1.4h9.2a1.6 1.6 0 001.6-1.4L19.6 10M4.9 14.6h14.2M9.4 10.4v10M14.6 10.4v10"/>')};
+ICO={
+ up:SV('<path d="M12 18V6M7 11l5-5 5 5"/><path d="M6 21h12"/>'),
+ dn:SV('<path d="M12 6v12M7 13l5 5 5-5"/><path d="M6 3h12"/>'),
+ rp:SV('<path d="M4 8h13l-3-3.2M20 16H7l3 3.2"/>'),
+ dup:SV('<rect x="9" y="9" width="11" height="11" rx="2.4"/><path d="M5 15V6.4A1.4 1.4 0 016.4 5H15"/>'),
+ rm:SV('<path d="M4.5 7h15M9.5 7V4.8h5V7M6.5 7l.9 12.2a1.6 1.6 0 001.6 1.5h6a1.6 1.6 0 001.6-1.5L17.5 7M10 11v5M14 11v5"/>'),
+ clr:SV('<path d="M7.5 20h12"/><path d="M5.4 14.6l8-8a2 2 0 012.8 0l2.4 2.4a2 2 0 010 2.8L12.6 17.6H8.2L5.4 14.8a1 1 0 010-.2z"/><path d="M9.5 10.5l4 4"/>'),
+ dl:SV('<path d="M12 4v11M7 10.5l5 5 5-5"/><path d="M5 20h14"/>'),
+ lock:SV('<rect x="5" y="11" width="14" height="9.5" rx="2.2"/><path d="M8 11V8a4 4 0 018 0v3"/>'),
+ unlock:SV('<rect x="5" y="11" width="14" height="9.5" rx="2.2"/><path d="M8 11V8a4 4 0 017.8-1.3"/>'),
+ undo:SV('<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/>'),
+ redo:SV('<path d="M15 14l5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 000 11H13"/>')};
 function tbBuild(){const bar=$('.studio .bar');if(!bar)return;bar.classList.add('tbx');$('.studio').prepend(bar);
- const dec=(q,svg,io)=>{const b=bar.querySelector(q);if(!b)return;const t=b.textContent.trim();b.setAttribute('aria-label',t);b.title=t;b.innerHTML=svg+'<span class="lb">'+t+'</span>';if(io)b.classList.add('io')};
- dec('[onclick="mv(1)"]',ICO.up);dec('[onclick="mv(-1)"]',ICO.dn);dec('#rmb',ICO.rm,1);
- const r=$('#rmb');if(r){r.dataset.d='1';r.setAttribute('aria-label','นำออก')}tbLayout();selUI()}
-function tbLayout(){const bar=$('.studio .bar.tbx');if(!bar)return;const g=q=>bar.querySelector(q)||document.querySelector('.studio '+q),
- up=g('[onclick="mv(1)"]'),dn=g('[onclick="mv(-1)"]'),rp=g('[onclick="rep()"]'),dp=g('#cpb'),rm=g('#rmb'),cl=g('[onclick^="S.pieces=[]"]'),dl=g('[onclick="dl()"]'),sv=g('[onclick="saveDlg()"]'),
- mk=(c,k)=>{const d=document.createElement('div');d.className=c;k.filter(Boolean).forEach(b=>d.appendChild(b));return d},
- build=cp=>{bar.querySelectorAll('.sp').forEach(e=>e.remove());bar.querySelectorAll('.r').forEach(e=>e.remove());document.querySelectorAll('.studio .tbs').forEach(e=>e.remove());const cv=$('#cv');
-  if(!cp){bar.appendChild(mk('r r1',[up,dn,rp,dp,rm,cl,dl]));const t=mk('tbs',[sv]);if(cv&&cv.parentNode)cv.parentNode.insertBefore(t,cv);else bar.appendChild(t)}
-  else{bar.appendChild(mk('r tw',[mk('stk',[up,dn]),mk('rst',[dp,rm,cl,rp,dl])]));
-   if(MQ.matches)bar.appendChild(mk('r r3 sv',[sv]));else{const t=mk('tbs',[sv]);if(cv&&cv.parentNode)cv.parentNode.insertBefore(t,cv);else bar.appendChild(t)}}
-  bar.dataset.m=cp?'c':'d'};
- build(MQ.matches);
- if(!MQ.matches){const r1=bar.querySelector('.r1');if(r1&&up&&r1.offsetHeight>up.offsetHeight*1.5)build(true)}}
-let _tbr=0;addEventListener('resize',()=>{cancelAnimationFrame(_tbr);_tbr=requestAnimationFrame(()=>{const b=$('.studio .bar.tbx');if(b&&b.clientWidth!==b._w){b._w=b.clientWidth;tbLayout()}})});
-const _su=window.selUI;window.selUI=function(){_su();const r=$('#rmb');if(r&&r.dataset.d){const n=S.ms.size;r.innerHTML=ICO.rm+'<span class="lb">นำออก</span>'+(n>1?'<span class="cn">('+n+')</span>':'')}};
+ const dec=(q,svg)=>{const b=bar.querySelector(q);if(!b)return;const t=b.textContent.trim();b.setAttribute('aria-label',t);b.setAttribute('data-tip',t);b.removeAttribute('title');b.innerHTML=svg+'<span class="lb">'+t+'</span>'};
+ dec('[onclick="mv(1)"]',ICO.up);dec('[onclick="mv(-1)"]',ICO.dn);dec('[onclick="rep()"]',ICO.rp);dec('#cpb',ICO.dup);dec('#rmb',ICO.rm);dec('[onclick^="S.pieces=[]"]',ICO.clr);dec('[onclick="dl()"]',ICO.dl);
+ const r=$('#rmb');if(r)r.dataset.d='1';tbLayout();selUI()}
+/* presentation only: the original buttons are moved (never re-created) into one dock: [history] [tools] [save] */
+function tbLayout(){const bar=$('.studio .bar.tbx');if(!bar||bar.querySelector('.tb-dock'))return;const g=q=>bar.querySelector(q),
+ up=g('[onclick="mv(1)"]'),dn=g('[onclick="mv(-1)"]'),rp=g('[onclick="rep()"]'),dp=g('#cpb'),rm=g('#rmb'),cl=g('[onclick^="S.pieces=[]"]'),dl=g('[onclick="dl()"]'),lk=g('#closetteLock'),ul=g('#closetteUnlock'),un=g('#closetteUndo'),re=g('#closetteRedo'),sv=g('[onclick="saveDlg()"]');
+ if(!up||!lk||!ul||!un||!re||!sv)return;
+ const mk=(c,k)=>{const d=document.createElement('div');d.className=c;k.filter(Boolean).forEach(b=>d.appendChild(b));return d},sep=()=>{const i=document.createElement('i');i.className='tb-sep';i.setAttribute('aria-hidden','true');return i};
+ bar.querySelectorAll('.sp').forEach(e=>e.remove());
+ bar.appendChild(mk('tb-dock',[mk('tb-hist',[un,re]),mk('tb-tools',[mk('tb-g',[up,dn]),sep(),mk('tb-g',[rp,dp,rm]),sep(),mk('tb-g',[lk,ul]),sep(),mk('tb-g',[cl,dl])]),sv]))}
+const _su=window.selUI;window.selUI=function(){_su();const r=$('#rmb');if(r&&r.dataset.d){const n=S.ms.size;r.innerHTML=ICO.rm+'<span class="lb">นำออก</span>'+(n>1?'<span class="cn">'+n+'</span>':'')}};
 MQ.addEventListener('change',tbLayout);
 
 /* signed-URL cache: keep one stable URL per image so the browser reuses its cached copy; only sign paths that are new or about to expire */
@@ -844,6 +847,49 @@ async function openStor(){
  g.innerHTML=row('พื้นที่เก็บรูป',img)+row('พื้นที่ฐานข้อมูล',db)+row('รวมทั้งหมด',tot,'border-top:1px solid var(--line);margin-top:8px;border-radius:0')
   +(db==null||img==null?'<p class="mut" style="font-size:12px;margin:10px 0 0">'+(db==null?'ขนาดฐานข้อมูลดึงไม่ได้ (ต้องเชื่อม Supabase และรัน storage-usage.sql) ':'')+'ยอดรวมไม่รวมค่าที่ไม่พร้อมใช้งาน</p>':'')}
 window.openStor=openStor;
+
+/* ── Outfit Builder: locking, group resize, undo/redo ── */
+const REDO=[];
+const snapState=()=>JSON.stringify(S.pieces);
+function remember(){const c=snapState();if(H[H.length-1]!==c){H.push(c);if(H.length>60)H.shift()}REDO.length=0;historyButtons()}
+function historyButtons(){const u=$('#closetteUndo'),r=$('#closetteRedo');if(u)u.disabled=!H.some(x=>x!==snapState());if(r)r.disabled=!REDO.length}
+window.undo=function(){const c=snapState();while(H.length&&H[H.length-1]===c)H.pop();if(!H.length)return toast('ไม่มีรายการให้เลิกทำ');REDO.push(c);S.pieces=JSON.parse(H.pop());S.ms=new Set();S.sel=null;drawPieces();historyButtons()};
+window.redo=function(){if(!REDO.length)return toast('ไม่มีรายการให้ทำซ้ำ');H.push(snapState());S.pieces=JSON.parse(REDO.pop());S.ms=new Set();S.sel=null;drawPieces();historyButtons()};
+function lockSelected(value){if(!S.ms.size)return toast('เลือกชิ้นเสื้อผ้าก่อน');remember();let n=0;S.pieces.forEach(p=>{if(S.ms.has(p.id)){p.locked=!!value;n++}});drawPieces();toast(value?'ล็อก '+n+' ชิ้นแล้ว':'ปลดล็อก '+n+' ชิ้นแล้ว')}
+window.lockSelected=()=>lockSelected(true);window.unlockSelected=()=>lockSelected(false);
+const oldDrawPieces=window.drawPieces||drawPieces;
+window.drawPieces=function(){oldDrawPieces();const cv=$('#cv');if(!cv)return;
+ cv.querySelectorAll('.pi').forEach(el=>{const p=S.pieces.find(x=>x.id===el.dataset.id);if(!p)return;el.classList.toggle('locked',!!p.locked);el.setAttribute('aria-label',(item(p.itemId)||{}).name+(p.locked?' (ล็อกแล้ว)':''));if(p.locked){let tag=el.querySelector('.lock-mark');if(!tag){tag=document.createElement('span');tag.className='lock-mark';tag.innerHTML=ICO.lock;tag.setAttribute('aria-hidden','true');el.appendChild(tag)}}else el.querySelector('.lock-mark')?.remove()});
+ cv.querySelector('.group-box')?.remove();const chosen=S.pieces.filter(p=>S.ms.has(p.id)&&!p.locked);if(chosen.length>1){const x=Math.min(...chosen.map(p=>p.x)),y=Math.min(...chosen.map(p=>p.y)),right=Math.max(...chosen.map(p=>p.x+p.w)),bottom=Math.max(...chosen.map(p=>p.y+p.w*(p.ar||1)));const b=document.createElement('div');b.className='group-box';Object.assign(b.style,{left:x*100+'%',top:y*100+'%',width:(right-x)*100+'%',height:(bottom-y)*100+'%'});b.innerHTML='<i data-gr="nw"></i><i data-gr="ne"></i><i data-gr="sw"></i><i data-gr="se"></i>';cv.appendChild(b)}historyButtons();selUI()};
+const oldStudio=window.vStudio;
+window.vStudio=function(){oldStudio();const cv=$('#cv'),bar=$('.studio .bar');if(!cv||!bar)return;
+ if(!$('#closetteUndo')){const mkH=(id,t,svg,fn)=>{const b=document.createElement('button');b.className='g';b.id=id;b.setAttribute('aria-label',t);b.setAttribute('data-tip',t);b.setAttribute('onclick',fn);b.innerHTML=svg;return b};bar.appendChild(mkH('closetteUndo','เลิกทำ',ICO.undo,'undo()'));bar.appendChild(mkH('closetteRedo','ทำซ้ำ',ICO.redo,'redo()'))}
+ if(!$('#closetteLock')){const mkB=(id,t,svg,l,fn)=>{const b=document.createElement('button');b.className='g lk';b.id=id;b.setAttribute('data-tip',t);b.setAttribute('aria-label',t);b.innerHTML=svg+'<span class="lb">'+l+'</span>';b.onclick=fn;return b};
+   bar.appendChild(mkB('closetteLock','ล็อกชิ้นที่เลือก',ICO.lock,'ล็อก',()=>lockSelected(true)));bar.appendChild(mkB('closetteUnlock','ปลดล็อกชิ้นที่เลือก',ICO.unlock,'ปลดล็อก',()=>lockSelected(false)))}
+ tbLayout();document.querySelectorAll('.studio .tbs').forEach(e=>{if(!e.children.length)e.remove()});
+// Replace canvas interaction with lock-aware selection and group scaling.
+ let drag=null;const add=e=>e.ctrlKey||e.metaKey||e.shiftKey||S.mm;
+ cv.onpointerdown=e=>{if(!e.isPrimary||e.button>0)return;const r=cv.getBoundingClientRect(),gr=e.target.closest('[data-gr]'),el=e.target.closest('.pi');
+  if(gr){const ids=[...S.ms].filter(id=>{const p=S.pieces.find(q=>q.id===id);return p&&!p.locked});if(!ids.length)return;remember();drag={type:'group-resize',handle:gr.dataset.gr,x:e.clientX,y:e.clientY,r,orig:ids.map(id=>({...S.pieces.find(p=>p.id===id)})),pid:e.pointerId};cv.setPointerCapture(e.pointerId);e.preventDefault();return}
+  if(el){const p=S.pieces.find(q=>q.id===el.dataset.id);if(!p)return;if(add(e)){if(p.locked)return;S.ms.has(p.id)?S.ms.delete(p.id):S.ms.add(p.id);drawPieces();return}
+   if(!S.ms.has(p.id)){S.ms=new Set([p.id]);S.sel=p.id}if(p.locked){drawPieces();return}const active=[...S.ms].map(id=>S.pieces.find(q=>q.id===id)).filter(q=>q&&!q.locked);if(!active.length)return;remember();drag={type:e.target.classList.contains('rz')&&active.length===1?'resize':'move',x:e.clientX,y:e.clientY,r,orig:active.map(q=>({...q})),pid:e.pointerId};cv.setPointerCapture(e.pointerId);drawPieces();e.preventDefault();return}
+  const base=add(e)?new Set(S.ms):new Set();if(!add(e)){S.ms.clear();drawPieces()}drag={type:'marquee',x:e.clientX,y:e.clientY,r,base,pid:e.pointerId};cv.setPointerCapture(e.pointerId);e.preventDefault()};
+ cv.onpointermove=e=>{if(!drag||e.pointerId!==drag.pid)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y,fx=dx/drag.r.width,fy=dy/drag.r.height;if(drag.type==='marquee'){let q=cv.querySelector('.mq');if(!q){q=document.createElement('div');q.className='mq';cv.appendChild(q)}const x=Math.min(drag.x,e.clientX),y=Math.min(drag.y,e.clientY),xx=Math.max(drag.x,e.clientX),yy=Math.max(drag.y,e.clientY);Object.assign(q.style,{left:x-drag.r.left+'px',top:y-drag.r.top+'px',width:xx-x+'px',height:yy-y+'px'});const n=new Set(drag.base);cv.querySelectorAll('.pi').forEach(node=>{const b=node.getBoundingClientRect();if(b.right>=x&&b.left<=xx&&b.bottom>=y&&b.top<=yy)n.add(node.dataset.id)});S.ms=n;drawPieces();return}
+  if(drag.type==='group-resize'){const os=drag.orig,xs=os.map(p=>p.x),ys=os.map(p=>p.y),rs=os.map(p=>p.x+p.w),bs=os.map(p=>p.y+p.w*(p.ar||1)),l=Math.min(...xs),t=Math.min(...ys),rr=Math.max(...rs),bb=Math.max(...bs),w=rr-l,h=bb-t;let sx=1,sy=1;if(drag.handle.includes('e'))sx=Math.max(.1,(w+fx)/w);if(drag.handle.includes('w'))sx=Math.max(.1,(w-fx)/w);if(drag.handle.includes('s'))sy=Math.max(.1,(h+fy)/h);if(drag.handle.includes('n'))sy=Math.max(.1,(h-fy)/h);const scale=Math.max(.1,Math.min(4,Math.min(sx,sy)));os.forEach(o=>{const p=S.pieces.find(q=>q.id===o.id);if(!p)return;const ax=drag.handle.includes('w')?rr:l,ay=drag.handle.includes('n')?bb:t;p.x=ax+(o.x-ax)*scale+(drag.handle.includes('w')?fx:0);p.y=ay+(o.y-ay)*scale+(drag.handle.includes('n')?fy:0);p.w=Math.max(.04,Math.min(1.2,o.w*scale))});drawPieces();return}
+  drag.orig.forEach(o=>{const p=S.pieces.find(q=>q.id===o.id);if(!p)return;if(drag.type==='move'){p.x=o.x+fx;p.y=o.y+fy}else{const nw=Math.max(.06,Math.min(1.2,o.w+Math.max(fx,fy)));p.w=nw}});drawPieces()};
+ cv.onpointerup=cv.onpointercancel=e=>{if(!drag||e.pointerId!==drag.pid)return;cv.querySelector('.mq')?.remove();drag=null;historyButtons()};
+ cv.onwheel=e=>{const el=e.target.closest('.pi');if(!el)return;const p=S.pieces.find(q=>q.id===el.dataset.id);if(!p||p.locked)return;e.preventDefault();remember();p.w=Math.max(.06,Math.min(1.2,p.w*(e.deltaY<0?1.06:.94)));drawPieces()};
+ drawPieces();historyButtons()};
+const oldMv=window.mv;window.mv=function(d){const ids=[...S.ms],active=ids.filter(id=>{const p=S.pieces.find(q=>q.id===id);return p&&!p.locked});if(!active.length)return toast('ไม่มีชิ้นที่เลือกซึ่งปลดล็อกอยู่');remember();const a=S.pieces.filter(p=>active.includes(p.id)),b=S.pieces.filter(p=>!active.includes(p.id));S.pieces=d>0?[...b,...a]:[...a,...b];drawPieces()};
+const oldAdd=window.addPiece;window.addPiece=function(id){remember();return oldAdd(id)};
+const oldRm=window.rmPiece;window.rmPiece=function(){if(!S.ms.size)return toast('เลือกชิ้นเสื้อผ้าก่อน');remember();S.pieces=S.pieces.filter(p=>!S.ms.has(p.id));S.ms=new Set();S.sel=null;drawPieces()};
+const oldDup=window.dupSel;window.dupSel=function(){if(!S.ms.size)return toast('เลือกชิ้นเสื้อผ้าก่อน');remember();const ids=[...S.ms].filter(id=>{const p=S.pieces.find(q=>q.id===id);return p&&!p.locked});const n=new Set();S.pieces.filter(p=>ids.includes(p.id)).forEach(p=>{const c={...p,id:uuid(),x:p.x+.03,y:p.y+.03,locked:false};S.pieces.push(c);n.add(c.id)});S.ms=n;drawPieces();toast('ทำซ้ำ '+n.size+' ชิ้นแล้ว')};
+const style=document.createElement('style');style.textContent=`
+.group-box{position:absolute;border:1.5px solid var(--acc2);pointer-events:none;z-index:10000;box-sizing:border-box}.group-box i{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid var(--acc2);pointer-events:auto}.group-box i[data-gr=nw]{left:-7px;top:-7px;cursor:nwse-resize}.group-box i[data-gr=ne]{right:-7px;top:-7px;cursor:nesw-resize}.group-box i[data-gr=sw]{left:-7px;bottom:-7px;cursor:nesw-resize}.group-box i[data-gr=se]{right:-7px;bottom:-7px;cursor:nwse-resize}.pi.locked{cursor:not-allowed}.pi.locked .rz{display:none}.pi.locked.on{outline-style:solid;outline-color:#d3c3ab}.lock-mark{position:absolute;top:4px;left:4px;width:18px;height:18px;display:grid;place-items:center;border-radius:50%;background:rgba(251,247,239,.82);color:var(--mut);line-height:0;pointer-events:none}.lock-mark svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+`;document.head.appendChild(style);
+window.openStor=openStor;
+/* Keep the app's internal function bindings in sync with the enhanced handlers. */
+vStudio=window.vStudio;drawPieces=window.drawPieces;mv=window.mv;addPiece=window.addPiece;rmPiece=window.rmPiece;dupSel=window.dupSel;undo=window.undo;redo=window.redo;
 })();
 </script>
 
