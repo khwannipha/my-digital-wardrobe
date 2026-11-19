@@ -447,17 +447,17 @@ function cdBody(){
  un=S.items.filter(i=>!cat(i.category_id)).length;
  return flat('All','ทั้งหมด',S.items.length)+parents().map(p=>{const ss=subs(p.id),o=TX.has(p.id);
   return `<div class="cdg ${o?'open':''}" data-p="${p.id}" role="none"><div class="cdi p ${S.tf===p.id?'on':''}" role="none">${ss.length?`<button type="button" class="cdc" tabindex="-1" aria-hidden="true" onclick="cdTog('${p.id}')">${CHV}<path d="M9 6l6 6-6 6"/></svg></button>`:'<span class="cdc sp"></span>'}${rw(p.id,esc(p.name),count(kids(p.id)),'pr',ss.length?` aria-expanded="${o}"`:'')}</div>${ss.length?`<div class="cdk"><div class="cds" role="group">${ss.map(c=>`<div class="cdi s ${S.tf===c.id?'on':''}" role="none">${rw(c.id,esc(c.name),count([c.id]),'sr')}</div>`).join('')}</div></div>`:''}</div>`}).join('')+(un?flat('none',esc(UNC),un):'')}
-function cdPlace(t,el){const r=t.getBoundingClientRect(),w=Math.min(innerWidth-16,Math.max(r.width,260)),below=innerHeight-r.bottom-14,above=r.top-14,up=below<240&&above>below;
+function cdPlace(t,el){const cp=el.classList.contains('sheet'),r=t.getBoundingClientRect(),w=Math.min(innerWidth-16,Math.max(r.width,cp?208:260)),below=innerHeight-r.bottom-14,above=r.top-14,up=below<240&&above>below;
  el.style.width=w+'px';el.style.left=Math.max(8,Math.min(r.left,innerWidth-w-8))+'px';
- if(up){el.style.bottom=(innerHeight-r.top+6)+'px';el.style.maxHeight=Math.min(440,above)+'px'}else{el.style.top=(r.bottom+6)+'px';el.style.maxHeight=Math.min(440,below)+'px'}}
+ if(up){el.style.bottom=(innerHeight-r.top+6)+'px';el.style.maxHeight=Math.min(cp?320:440,above)+'px'}else{el.style.top=(r.bottom+6)+'px';el.style.maxHeight=Math.min(cp?320:440,below)+'px'}}
 function cdToggle(t){if(CDP){const same=CDP.t===t;cdClose();if(same)return}cdOpen(t)}
 function cdOpen(t){
  tfOK();const c=cat(S.tf);if(c)TX.add(c.parent_id||c.id);
  const sheet=matchMedia('(max-width:860px)').matches,el=document.createElement('div');
  el.className='cdpop'+(sheet?' sheet':'');el.setAttribute('role','dialog');el.setAttribute('aria-label','เลือกหมวดหมู่');
- el.innerHTML=`<div class="cdh"><b>หมวดหมู่</b><button type="button" class="cdx" aria-label="ปิด" onclick="cdClose(true)">×</button></div><div class="cdb" role="tree">${cdBody()}</div>`;
+ el.innerHTML=`<div class="cdb" role="tree">${cdBody()}</div>`;
  let bk=null;if(sheet){bk=document.createElement('div');bk.className='cdbk';bk.onclick=()=>cdClose(true);document.body.appendChild(bk)}
- document.body.appendChild(el);if(!sheet)cdPlace(t,el);t.setAttribute('aria-expanded','true');
+ document.body.appendChild(el);cdPlace(t,el);t.setAttribute('aria-expanded','true');
  const od=e=>{if(!el.contains(e.target)&&!t.contains(e.target))cdClose()},
  ok=e=>{if(e.key==='Escape'){e.preventDefault();e.stopPropagation();cdClose(true);return}
   const rows=[...el.querySelectorAll('.cdr')].filter(b=>getComputedStyle(b).visibility!=='hidden'),i=rows.indexOf(document.activeElement);
@@ -824,12 +824,16 @@ main{padding:14px 14px calc(88px + env(safe-area-inset-bottom))}
 .cdi.s{margin-top:1px}
 .cdi.s .cdr{padding-left:10px;color:var(--mut)}
 .cdi.s.on .cdr{color:#fbf7ef}
-.cdbk{position:fixed;inset:0;z-index:59;background:rgba(75,61,49,.3)}
-.cdpop.sheet{left:0;right:0;bottom:0;top:auto;width:auto;max-height:72vh;max-height:72dvh;border-radius:22px 22px 0 0;border-width:1px 0 0;box-shadow:0 -6px 24px rgba(75,61,49,.14);padding-bottom:env(safe-area-inset-bottom);animation:cdup .22s ease}
-.cdpop.sheet .cdh{display:flex}
-.cdpop.sheet .cdr{min-height:46px;font-size:15px}
-.cdpop.sheet .cdc{width:44px;height:46px}
-@keyframes cdup{from{transform:translateY(28px);opacity:0}}
+.cdbk{position:fixed;inset:0;z-index:59;background:transparent}
+.cdpop.sheet{border-radius:16px;box-shadow:0 6px 22px rgba(75,61,49,.2);animation:cdup .16s ease;transform-origin:left bottom}
+.cdpop.sheet .cdb{padding:4px}
+.cdpop.sheet .cdr{min-height:38px;padding:4px 10px 4px 2px;font-size:14px}
+.cdpop.sheet .cdc{width:30px;height:38px}
+.cdpop.sheet .cdi.s .cdr{padding-left:8px}
+.cdpop.sheet .cdi.on,.cdpop.sheet .cdi.on:hover{background:var(--sand);color:var(--ink)}
+.cdpop.sheet .cdi.on .cdc,.cdpop.sheet .cdi.s.on .cdr{color:var(--ink)}
+.cdpop.sheet .cdi.on .nm{font-weight:500}
+@keyframes cdup{from{transform:scale(.96);opacity:0}}
 @media(prefers-reduced-motion:reduce){.cdpop.sheet{animation:none}}
 @media(max-width:860px){.sh-head .cd{display:inline-block;width:auto;max-width:100%}.sh-head .cdt{width:auto;min-width:120px;max-width:100%;min-height:34px;padding:4px 10px;font-size:13px}}
 </style>
